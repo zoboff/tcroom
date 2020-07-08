@@ -36,7 +36,7 @@ def events_thread_function(name, terminal):
 
         time.sleep(0.1)
 
-class Terminal:
+class Room:
     def __init__(self, debug_mode = False):
         self.stop = False
         self.debug_mode = debug_mode
@@ -78,7 +78,7 @@ class Terminal:
         self.dbg_print('{} connection "{}" successfully'.format(PRODUCT_NAME, self.address_request)) # dbg_print
         
         # Auth
-        self.auth('zblxr9n0')
+        self.auth('')
         #str = auth_by_PIN.format('PIN')
         #self.connection.send(str)
         
