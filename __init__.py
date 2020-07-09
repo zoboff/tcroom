@@ -6,17 +6,6 @@ import time
 
 PRODUCT_NAME = 'TrueConf Room'
 
-auth = '''{
-    "method" : "auth",
-    "type" : "unsecured"
-}'''
-
-auth_by_PIN = '''{
-    "method" : "auth",
-    "type" : "secured",
-    "credentials" : "{}"
-}'''
-
 class TerminalException(Exception):
     pass
 
@@ -61,12 +50,14 @@ class Room:
         self.dbg_print('Received: {}'.format(self.connection.recv())) # dbg_print
 
     def auth(self, pin: str):
-        command = {"method" : "auth","type" : "secured", "credentials" : pin}
-        command = {"method" : "auth","type" : "unsecured"}
-        # send    
+        if pin:
+            command = {"method" : "auth","type" : "secured", "credentials" : pin}
+        else:
+            command = {"method" : "auth","type" : "unsecured"}
+        # send
         self.send_command_to_terminal(command)
     
-    def create_connection(self, ip: str) -> None:
+    def create_connection(self, ip: str, pin: str = None) -> None:
         self.ip = ip
         # Connect
         self.address_request = 'ws://{}:8765'.format(self.ip)
@@ -78,8 +69,7 @@ class Room:
         self.dbg_print('{} connection "{}" successfully'.format(PRODUCT_NAME, self.address_request)) # dbg_print
         
         # Auth
-        self.auth('')
-        #str = auth_by_PIN.format('PIN')
+        self.auth(pin)
         #self.connection.send(str)
         
         self.stop = False
