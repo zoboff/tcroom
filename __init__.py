@@ -1,4 +1,4 @@
-from websocket import create_connection
+from websocket import create_connection, WebSocketAddressException
 import json
 import logging
 import threading
@@ -6,38 +6,44 @@ import time
 
 PRODUCT_NAME = 'TrueConf Room'
 
-class TerminalException(Exception):
+class RoomException(Exception):
     pass
 
 def events_thread_function(name, terminal):
     print('Thread "{}": starting'.format(name))
     while not terminal.in_stopping:
         try:
-            if terminal.connected:
+            if terminal.is_connection_started:
                 # Receive 
-                rcv_str = terminal.connection.recv()        
-                terminal.dbg_print('Received: {}'.format(rcv_str)) # dbg_print
+                rcv = terminal.connection.recv()        
+                terminal.dbg_print('Received: {}'.format(rcv)) # dbg_print
                 # json string to dictionary
-                rcv_dict = json.loads(rcv_str)
+                response = json.loads(rcv)
                 # events
-                if "event" in rcv_dict:
-                    terminal.dbg_print('Event: {}'.format(rcv_dict["event"])) # dbg_print
+                if "event" in response:
+                    terminal.dbg_print('Event: {}'.format(response["event"])) # dbg_print
                     # EVENT: appStateChanged
-                    if rcv_dict["event"] == "appStateChanged" and "appState" in rcv_dict:
-                        terminal.dbg_print('*** appStateChanged = {}'.format(rcv_dict["appState"])) # dbg_print
-                        if rcv_dict["appState"] == 3:
+                    if response["event"] == "appStateChanged" and "appState" in response:
+                        terminal.dbg_print('*** appStateChanged = {}'.format(response["appState"])) # dbg_print
+                        if response["appState"] == 3:
                             pass
                         else:
                             pass
-                # {"requestId":"","method":"auth","previleges":2,"token":"***","tokenForHttpServer":"***","result":true}
-                elif "method" in rcv_dict and rcv_dict["method"] == "auth" and rcv_dict["result"]:
-                    terminal.dbg_print('*** Auth successfully: tokenForHttpServer = {}'.format(rcv_dict["tokenForHttpServer"])) # dbg_print
-                    terminal.tokenForHttpServer = rcv_dict["tokenForHttpServer"]
-                elif "method" in rcv_dict and rcv_dict["method"] == "auth" and not rcv_dict["result"]:
-                    raise TerminalException('Auth error.')
+                elif "method" in response:
+                    # {"requestId":"","method":"auth","previleges":2,"token":"***","tokenForHttpServer":"***","result":true} 
+                    if response["method"] == "auth" and response["result"]:
+                        terminal.dbg_print('*** Auth successfully: tokenForHttpServer = {}'.format(response["tokenForHttpServer"])) # dbg_print
+                        terminal.tokenForHttpServer = response["tokenForHttpServer"]
+                        terminal.is_connected = True
+                    elif response["method"] == "auth" and not response["result"]:
+                        terminal.caughtConnectionError()
+                        print('Auth error.')
+                        break
 
             time.sleep(0.2)
         except ConnectionResetError:
+            terminal.caughtConnectionError()
+            #raise RoomException('Room connection failed')
             print('Room connection failed')
             break 
         except Exception as e:
@@ -52,8 +58,9 @@ class Room:
         self.address_request = ''
         self.connection = None
         self.events_thread = None
-        self.connected = False
+        self.is_connected = False
         self.tokenForHttpServer = ''
+        self.is_connection_started = False
         
     def __del__(self):
         self.close_connection()
@@ -64,7 +71,7 @@ class Room:
     
     def send_command_to_terminal(self, command: dict):
         if not self.connection:
-            raise TerminalException('Connection to {} is not initialized. Run before: create_connection() '.format(PRODUCT_NAME))
+            raise RoomException('Connection to {} is not initialized. Run before: create_connection() '.format(PRODUCT_NAME))
 
         self.connection.send(json.dumps(command))
         self.dbg_print('Run command: {}'.format(str(command))) # dbg_print
@@ -77,7 +84,7 @@ class Room:
         # send
         self.send_command_to_terminal(command)
     
-    def create_connection(self, ip: str, pin: str = None) -> None:
+    def create_connection(self, ip: str, pin: str = None) -> bool:
         self.ip = ip
         self.in_stopping = False
         self.tokenForHttpServer = ''
@@ -86,7 +93,9 @@ class Room:
         try:
             self.connection = create_connection(self.address_request)
         except ConnectionRefusedError:
-            raise TerminalException('Error connection to {}. IP="{}"'.format(PRODUCT_NAME, self.ip))
+            raise RoomException('Error connection to {}. IP="{}"'.format(PRODUCT_NAME, self.ip))
+        except WebSocketAddressException:
+            raise RoomException('{} is not running or wrong IP address . IP="{}"'.format(PRODUCT_NAME, self.ip))
         except:
             raise        
         
@@ -100,12 +109,13 @@ class Room:
         self.events_thread.start()
         self.dbg_print('Events Thread started') # dbg_print
         
-        self.connected = True
+        self.is_connection_started = True
         
     def close_connection(self):
         self.dbg_print('Connection is closing...') # dbg_print
-        self.connected = False
+        self.is_connection_started = False
         self.in_stopping = True
+        self.is_connected = False
 
         if self.events_thread and self.events_thread.is_alive():
             self.dbg_print('Finishing Events thread ...') # dbg_print
@@ -121,6 +131,14 @@ class Room:
         
     def getTokenForHttpServer(self):
         return self.tokenForHttpServer
+    
+    def isConnected(self):
+        return self.is_connected
+    
+    def caughtConnectionError(self):
+        self.in_stopping = True
+        self.is_connected = False
+
 
     def call(self, peerId: str) -> None:
         # make a command        
