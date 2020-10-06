@@ -29,7 +29,6 @@ class Room:
         self.pin = ''
         self.address_request = ''
         self.connection = None
-        self.events_thread = None
         self.tokenForHttpServer = ''
         self.debug_mode = debug_mode
 
@@ -52,6 +51,7 @@ class Room:
                     pass
                 else:
                     pass
+        # "method": "auth"
         elif "method" in response and response["method"] == "auth":
             # {"requestId":"","method":"auth","previleges":2,"token":"***","tokenForHttpServer":"***","result":true} 
             if response["result"]:
@@ -95,7 +95,7 @@ class Room:
         self.connection.send(json.dumps(command))
         self.dbg_print('Run command: {}'.format(str(command))) # dbg_print
 
-    def create_connection(self, ip: str, pin: str) -> bool:
+    def connect(self, ip: str, pin: str) -> bool:
         self.ip = ip
         self.pin = pin
         self.in_stopping = False
@@ -111,7 +111,7 @@ class Room:
         # Thread
         thread.start_new_thread(self.run, ())
         
-    def close_connection(self):
+    def disconnect(self):
         self.dbg_print('Connection is closing...') # dbg_print
         self.setConnectionStatus(ConnectionStatus.close)
 
@@ -173,9 +173,9 @@ class Room:
         self.send_command_to_room(command)
 
 # =====================================================================
-def make_connection_to_room(room_ip, pin):
+def make_connection(room_ip, pin):
     room = Room(True)
-    room.create_connection(room_ip, pin)
+    room.connect(room_ip, pin)
 
     # Wait for ~5 sec...
     WAIT_FOR_SEC, SLEEP = 5, 0.1
