@@ -84,7 +84,7 @@ class Room:
         self.auth(self.pin)
 
         def run(*args):
-            while self.isReadyToWork():
+            while self.isConnected():
                 time.sleep(0.1)
             self.connection.close()
 
@@ -124,7 +124,7 @@ class Room:
     def isReady(self):
         return self.connection_status == ConnectionStatus.normal
     
-    def isReadyToWork(self) -> bool:
+    def isConnected(self) -> bool:
         return self.connection_status in [ConnectionStatus.connected, ConnectionStatus.normal]
     
     def caughtConnectionError(self):
@@ -180,7 +180,7 @@ def make_connection(room_ip, pin):
     # Wait for ~5 sec...
     WAIT_FOR_SEC, SLEEP = 5, 0.1
     for i in range(round(WAIT_FOR_SEC/SLEEP)): 
-        if room.isReadyToWork():
+        if room.isConnected():
             break
         time.sleep(0.1)
         if i >= round(WAIT_FOR_SEC/SLEEP) - 1:
