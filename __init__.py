@@ -9,8 +9,11 @@ import json
 import logging
 import threading
 from enum import Enum
+import os
+import requests
 
 PRODUCT_NAME = 'TrueConf Room'
+URL_SELF_PICTURE = "http://{}:8766/frames/?peerId=%23self%3A0&token={}"
 
 class ConnectionStatus(Enum):
     unknown = 0
@@ -24,13 +27,15 @@ class RoomException(Exception):
 
 class Room:
     def __init__(self, debug_mode = False):
+        self.debug_mode = debug_mode
+
         self.connection_status = ConnectionStatus.unknown
         self.ip = ''
         self.pin = ''
-        self.address_request = ''
-        self.connection = None
+        self.url = ''
         self.tokenForHttpServer = ''
-        self.debug_mode = debug_mode
+
+        self.connection = None
 
     def __del__(self):
         pass
@@ -78,7 +83,7 @@ class Room:
         self.tokenForHttpServer = ''
 
     def on_open(self):
-        self.dbg_print('{} connection "{}" successfully'.format(PRODUCT_NAME, self.address_request)) # dbg_print
+        self.dbg_print('{} connection "{}" successfully'.format(PRODUCT_NAME, self.url)) # dbg_print
         self.setConnectionStatus(ConnectionStatus.connected)
         # Auth
         self.auth(self.pin)
@@ -101,8 +106,8 @@ class Room:
         self.in_stopping = False
         self.tokenForHttpServer = ''
         # Connect
-        self.address_request = 'ws://{}:8765'.format(self.ip)
-        self.connection = websocket.WebSocketApp(self.address_request,
+        self.url = 'ws://{}:8765'.format(self.ip)
+        self.connection = websocket.WebSocketApp(self.url,
                                   on_message = self.on_message,
                                   on_error = self.on_error,
                                   on_close = self.on_close)
@@ -133,6 +138,18 @@ class Room:
     def setConnectionStatus(self, status):
         self.connection_status = status
         print("setStatus: " + self.connection_status.name)
+        
+    def save_picture_selfview_to_file(self, fileName: str) -> str:
+        if self.isReady:
+            url = URL_SELF_PICTURE.format(self.ip, self.tokenForHttpServer)
+            with open(os.path.join(fileName), 'wb') as out_stream:
+                req = requests.get(url, stream=True)
+                for chunk in req.iter_content(10240):
+                    out_stream.write(chunk)
+        else:
+            raise RoomException('{} is not ready to take a picture'.format(PRODUCT_NAME, self.ip))
+        
+        return fileName
     # =============================================================
     def auth(self, pin: str):
         if pin:
