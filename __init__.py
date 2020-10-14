@@ -46,30 +46,53 @@ class Room:
 
     def processMessage(self, msg: str):
         response = json.loads(msg)
-        # events
+        if self.processAppStateChanged(response):
+            pass
+        elif self.processMethodAuth(response):
+            pass
+        elif self.processErrorInResponse(response):
+            pass
+    # ===================================================
+    def processAppStateChanged(self, response) -> bool:
+        result = False
         if "event" in response:
-            self.dbg_print('Event: {}'.format(response["event"])) # dbg_print
+            self.dbg_print('Event: %s' % response["event"]) # dbg_print
             # EVENT: appStateChanged
             if response["event"] == "appStateChanged" and "appState" in response:
-                self.dbg_print('*** appStateChanged = {}'.format(response["appState"])) # dbg_print
+                result = True
+                self.dbg_print('*** appStateChanged = %s' % response["appState"]) # dbg_print
                 if response["appState"] == 3:
                     pass
                 else:
                     pass
-        # "method": "auth"
-        elif "method" in response and response["method"] == "auth":
+
+        return result
+
+    def processMethodAuth(self, response) -> bool:
+        result = False
+        if "method" in response and response["method"] == "auth":
             # {"requestId":"","method":"auth","previleges":2,"token":"***","tokenForHttpServer":"***","result":true} 
             if response["result"]:
                 self.tokenForHttpServer = response["tokenForHttpServer"]
-                self.dbg_print('Get auth successfully: tokenForHttpServer = {}'.format("***")) # dbg_print
+                self.dbg_print('Get auth successfully: tokenForHttpServer = %s' % "***") # dbg_print
                 self.setConnectionStatus(ConnectionStatus.normal)
+                result = True
             else:
+                result = True
                 self.dbg_print('Get auth error')
+                self.disconnect()
                 self.caughtConnectionError() # any connection errors
-        elif "error" in response:
+
+        return result
+
+    def processErrorInResponse(self, response) -> bool:
+        result = False
+        if "error" in response:
+            result = True
             self.dbg_print("Room error: " + response["error"])
             self.caughtConnectionError() # any connection errors                           
-            
+
+        return result
     # ===================================================
     def on_message(self, message):
         self.processMessage(message)
@@ -83,7 +106,7 @@ class Room:
         self.tokenForHttpServer = ''
 
     def on_open(self):
-        self.dbg_print('{} connection "{}" successfully'.format(PRODUCT_NAME, self.url)) # dbg_print
+        self.dbg_print('%s connection "%s" successfully' % (PRODUCT_NAME, self.url)) # dbg_print
         self.setConnectionStatus(ConnectionStatus.connected)
         # Auth
         self.auth(self.pin)
@@ -98,7 +121,7 @@ class Room:
 
     def send_command_to_room(self, command: dict):
         self.connection.send(json.dumps(command))
-        self.dbg_print('Run command: {}'.format(str(command))) # dbg_print
+        self.dbg_print('Run command: %s' % str(command)) # dbg_print
 
     def connect(self, ip: str, pin: str) -> bool:
         self.ip = ip
