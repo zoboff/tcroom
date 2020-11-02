@@ -272,7 +272,7 @@ class Room:
         self.send_command_to_room(command)
 
 # =====================================================================
-def make_connection(room_ip = '127.0.0.1', pin, debug_mode = False,
+def make_connection(pin, room_ip = '127.0.0.1', debug_mode = False,
                     callback_OnChangeState = None, 
                     cb_OnIncomingMessage = None,
                     cb_OnEvent = None):
