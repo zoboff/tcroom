@@ -264,15 +264,20 @@ class Room:
         command = {"method": "moveVideoSlotToMonitor", "callId": callId, "monitorIndex": monitorIndex}
         # send    
         self.send_command_to_room(command)
-
+        
+    def sendCommand(self, peerId: str, command: str):
+        # make a command
+        command = {"method": "sendCommand", "peerId": peerId, "command": command}
+        # send    
+        self.send_command_to_room(command)
 
 # =====================================================================
-def make_connection(room_ip, pin, 
+def make_connection(room_ip = '127.0.0.1', pin, debug_mode = False,
                     callback_OnChangeState = None, 
                     cb_OnIncomingMessage = None,
                     cb_OnEvent = None):
 
-    room = Room(True, callback_OnChangeState, cb_OnIncomingMessage, cb_OnEvent)
+    room = Room(debug_mode = debug_mode, callback_OnChangeState, cb_OnIncomingMessage, cb_OnEvent)
     room.connect(room_ip, pin)
 
     # Wait for ~5 sec...
