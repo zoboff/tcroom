@@ -11,6 +11,7 @@ import threading
 from enum import Enum
 import os
 import requests
+import asyncio
 
 PRODUCT_NAME = 'TrueConf Room'
 URL_SELF_PICTURE = "http://{}:8766/frames/?peerId=%23self%3A0&token={}"
@@ -26,7 +27,11 @@ class RoomException(Exception):
     pass
 
 class Room:
-    def __init__(self, debug_mode = False):
+    def __init__(self, debug_mode = False, 
+                 cb_OnChangeState = None, 
+                 cb_OnIncomingMessage = None, 
+                 cb_OnEvent = None):
+
         self.debug_mode = debug_mode
 
         self.connection_status = ConnectionStatus.unknown
@@ -36,6 +41,10 @@ class Room:
         self.tokenForHttpServer = ''
 
         self.connection = None
+        
+        self.callback_OnChangeState = cb_OnChangeState
+        self.callback_OnIncomingMessage = cb_OnIncomingMessage
+        self.callback_OnEvent = cb_OnEvent
 
     def __del__(self):
         pass
@@ -44,31 +53,45 @@ class Room:
         if self.debug_mode:
             print(value)
 
-    def processMessage(self, msg: str):
+    # ===================================================
+    # Processing of the all incoming
+    # ===================================================
+    async def processMessage(self, msg: str):
         response = json.loads(msg)
-        if self.processAppStateChanged(response):
+        if await self.processAppStateChanged(response):
             pass
-        elif self.processMethodAuth(response):
+        elif await self.processMethodAuth(response):
             pass
-        elif self.processErrorInResponse(response):
+        elif await self.processIncomingMessage(response):
+            pass
+        elif await self.processErrorInResponse(response):
+            pass
+        elif await self.processEvents(response):
             pass
     # ===================================================
-    def processAppStateChanged(self, response) -> bool:
+
+    async def processAppStateChanged(self, response) -> bool:
         result = False
         if "event" in response:
-            self.dbg_print('Event: %s' % response["event"]) # dbg_print
+            self.dbg_print(f'Event: {response["event"]}') # dbg_print
             # EVENT: appStateChanged
             if response["event"] == "appStateChanged" and "appState" in response:
                 result = True
                 self.dbg_print('*** appStateChanged = %s' % response["appState"]) # dbg_print
-                if response["appState"] == 3:
+                new_state = response["appState"] 
+                if new_state == 3: # Normal
                     pass
                 else:
                     pass
 
+                # Callback func
+                if self.callback_OnChangeState:
+                    callback_func = asyncio.create_task(self.callback_OnChangeState(new_state))
+                    await callback_func
+
         return result
 
-    def processMethodAuth(self, response) -> bool:
+    async def processMethodAuth(self, response) -> bool:
         result = False
         if "method" in response and response["method"] == "auth":
             # {"requestId":"","method":"auth","previleges":2,"token":"***","tokenForHttpServer":"***","result":true} 
@@ -85,7 +108,26 @@ class Room:
 
         return result
 
-    def processErrorInResponse(self, response) -> bool:
+    # {"event":"incomingChatMessage","peerId":"azobov@team.trueconf.com","peerDn":"azobov@team.trueconf.com","message":"zzz","time":1603297004,"confId":"","method":"event"}
+    async def processIncomingMessage(self, response) -> bool:
+        result = False
+        if "event" in response:
+            self.dbg_print(f'Event: {response["event"]}') # dbg_print
+            # EVENT: incomingChatMessage
+            if response["event"] == "incomingChatMessage" and "message" in response:
+                result = True
+                msg = response["message"]
+                fromId = response["peerId"]
+                fromDn = response["peerDn"]
+                self.dbg_print(f"Message fromId: {fromId}, fromDn: {fromDn}, msg: {msg}")
+                # Callback func
+                if self.callback_OnIncomingMessage:
+                    callback_func = asyncio.create_task(self.callback_OnIncomingMessage(fromId, fromDn, msg))
+                    await callback_func
+
+        return result
+
+    async def processErrorInResponse(self, response) -> bool:
         result = False
         if "error" in response:
             result = True
@@ -93,9 +135,20 @@ class Room:
             self.caughtConnectionError() # any connection errors                           
 
         return result
+
+    async def processEvents(self, response) -> bool:
+        result = False
+        if "event" in response and "method" in response and response["method"] == "event":
+            result = True
+            # Callback func
+            if self.callback_OnEvent:
+                callback_func = asyncio.create_task(self.callback_OnEvent(self, response["event"], response))
+                await callback_func                                       
+
+        return result
     # ===================================================
     def on_message(self, message):
-        self.processMessage(message)
+        asyncio.run(self.processMessage(message))
 
     def on_error(self, error):
         self.dbg_print("WebSocket error: " + error)
@@ -206,15 +259,20 @@ class Room:
         # send    
         self.send_command_to_room(command)
 
-    def getLogin(self):
-        # make a command        
-        command = {"method" : "getLogin"}    
+    def moveVideoSlotToMonitor(self, callId: str, monitorIndex: int):
+        # make a command
+        command = {"method": "moveVideoSlotToMonitor", "callId": callId, "monitorIndex": monitorIndex}
         # send    
         self.send_command_to_room(command)
 
+
 # =====================================================================
-def make_connection(room_ip, pin):
-    room = Room(True)
+def make_connection(room_ip, pin, 
+                    callback_OnChangeState = None, 
+                    cb_OnIncomingMessage = None,
+                    cb_OnEvent = None):
+
+    room = Room(True, callback_OnChangeState, cb_OnIncomingMessage, cb_OnEvent)
     room.connect(room_ip, pin)
 
     # Wait for ~5 sec...
