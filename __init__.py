@@ -27,10 +27,11 @@ class RoomException(Exception):
     pass
 
 class Room:
-    def __init__(self, debug_mode = False, 
-                 cb_OnChangeState = None, 
-                 cb_OnIncomingMessage = None, 
-                 cb_OnEvent = None):
+    def __init__(self, debug_mode, 
+                 cb_OnChangeState, 
+                 cb_OnIncomingMessage, 
+                 cb_OnIncomingCommand,
+                 cb_OnEvent):
 
         self.debug_mode = debug_mode
 
@@ -44,6 +45,7 @@ class Room:
         
         self.callback_OnChangeState = cb_OnChangeState
         self.callback_OnIncomingMessage = cb_OnIncomingMessage
+        self.callback_OnIncomingCommand = cb_OnIncomingCommand
         self.callback_OnEvent = cb_OnEvent
 
     def __del__(self):
@@ -63,6 +65,8 @@ class Room:
         elif await self.processMethodAuth(response):
             pass
         elif await self.processIncomingMessage(response):
+            pass
+        elif await self.processIncomingCommand(response):
             pass
         elif await self.processErrorInResponse(response):
             pass
@@ -127,6 +131,24 @@ class Room:
 
         return result
 
+    # {"event": "commandReceived", "peerId": "user1@some.server", "command": "text", "method": "event"}
+    async def processIncomingCommand(self, response) -> bool:
+        result = False
+        if "event" in response:
+            self.dbg_print(f'Event: {response["event"]}') # dbg_print
+            # EVENT: commandReceived
+            if response["event"] == "commandReceived" and "command" in response:
+                result = True
+                cmd = response["command"]
+                fromId = response["peerId"]
+                self.dbg_print(f"Command fromId: {fromId}, cmd: {cmd}")
+                # Callback func
+                if self.callback_OnIncomingMessage:
+                    callback_func = asyncio.create_task(self.callback_OnIncomingCommand(fromId, cmd))
+                    await callback_func
+
+        return result
+
     async def processErrorInResponse(self, response) -> bool:
         result = False
         if "error" in response:
@@ -176,13 +198,13 @@ class Room:
         self.connection.send(json.dumps(command))
         self.dbg_print('Run command: %s' % str(command)) # dbg_print
 
-    def connect(self, ip: str, pin: str) -> bool:
+    def connect(self, ip: str, pin: str, ws_port:int = 8765) -> bool:
         self.ip = ip
         self.pin = pin
         self.in_stopping = False
         self.tokenForHttpServer = ''
         # Connect
-        self.url = 'ws://{}:8765'.format(self.ip)
+        self.url = f'ws://{self.ip}:{ws_port}'
         self.connection = websocket.WebSocketApp(self.url,
                                   on_message = self.on_message,
                                   on_error = self.on_error,
@@ -213,7 +235,7 @@ class Room:
     
     def setConnectionStatus(self, status):
         self.connection_status = status
-        print("setStatus: " + self.connection_status.name)
+        self.dbg_print("setStatus: " + self.connection_status.name) # dbg_print
         
     def save_picture_selfview_to_file(self, fileName: str) -> str:
         if self.isReady:
@@ -270,15 +292,40 @@ class Room:
         command = {"method": "sendCommand", "peerId": peerId, "command": command}
         # send    
         self.send_command_to_room(command)
+        
+    def hangUp(self, forAll: bool = False):
+        # make a command
+        command = {"method" : "hangUp", "forAll" : forAll}
+        # send    
+        self.send_command_to_room(command)
+
+    ''' {
+    "method" : "createConference"
+    "title" : "Code review",
+    "confType" : "symmetric",
+    "autoAccept" : false,
+    "inviteList" : [
+        "user1@some.server",
+        "user2@some.server",
+        "user3@some.server"
+    ]
+    }'''
+    def createConferenceSymmetric(self, title: str, autoAccept: bool, inviteList: []):           
+        # make a command
+        command = {"method" : "createConference", "title" : title, "confType" : "symmetric", 
+                   "autoAccept": autoAccept, "inviteList": inviteList}
+        # send    
+        self.send_command_to_room(command)
 
 # =====================================================================
-def make_connection(pin, room_ip = '127.0.0.1', debug_mode = False,
+def make_connection(pin, room_ip = '127.0.0.1', ws_port = 8765, debug_mode = False,
                     callback_OnChangeState = None, 
                     cb_OnIncomingMessage = None,
+                    cb_OnIncomingCommand = None,
                     cb_OnEvent = None):
 
-    room = Room(debug_mode = debug_mode, callback_OnChangeState, cb_OnIncomingMessage, cb_OnEvent)
-    room.connect(room_ip, pin)
+    room = Room(debug_mode, callback_OnChangeState, cb_OnIncomingMessage, cb_OnIncomingCommand, cb_OnEvent)
+    room.connect(room_ip, pin, ws_port)
 
     # Wait for ~5 sec...
     WAIT_FOR_SEC, SLEEP = 5, 0.1
