@@ -143,7 +143,7 @@ class Room:
                 fromId = response["peerId"]
                 self.dbg_print(f"Command fromId: {fromId}, cmd: {cmd}")
                 # Callback func
-                if self.callback_OnIncomingMessage:
+                if self.callback_OnIncomingCommand:
                     callback_func = asyncio.create_task(self.callback_OnIncomingCommand(fromId, cmd))
                     await callback_func
 
