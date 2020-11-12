@@ -82,17 +82,19 @@ class Room:
     async def processMessage(self, msg: str):
         response = json.loads(msg)
         if await self.processAppStateChanged(response):
-            pass
+            self.dbg_print('Processed in processAppStateChanged')
         elif await self.processMethodAuth(response):
-            pass
+            self.dbg_print('Processed in processMethodAuth')
         elif await self.processIncomingMessage(response):
-            pass
+            self.dbg_print('Processed in processIncomingMessage')
         elif await self.processIncomingCommand(response):
-            pass
+            self.dbg_print('Processed in processIncomingCommand')
         elif await self.processErrorInResponse(response):
-            pass
+            self.dbg_print('Processed in processErrorInResponse')
         elif await self.processEvents(response):
-            pass
+            self.dbg_print('Processed in processEvents')
+        else:
+            self.dbg_print(f'No one handled the event: {msg}')
     # ===================================================
 
     # EVENT: appStateChanged
@@ -101,7 +103,7 @@ class Room:
         # CHECK SCHEMA
         if check_schema({"event": "appStateChanged", "appState": None}, response):
             result = True
-            self.dbg_print(f'*** appStateChanged = {response["appState"]}') # dbg_print
+            self.dbg_print(f'*** appStateChanged = {response["appState"]}')
             new_state = response["appState"] 
             if new_state == 3: # Normal
                 pass
@@ -122,7 +124,7 @@ class Room:
         if check_schema({"method": "auth", "result": None}, response):
             if response["result"]:
                 self.tokenForHttpServer = response["tokenForHttpServer"]
-                self.dbg_print('Get auth successfully: tokenForHttpServer = %s' % "***") # dbg_print
+                self.dbg_print('Get auth successfully: tokenForHttpServer = %s' % "***")
                 self.setConnectionStatus(ConnectionStatus.normal)
                 result = True
             else:
@@ -176,10 +178,14 @@ class Room:
 
         return result
 
+    # Unprocessing events
+    # {"event": None, "method": "event"}
     async def processEvents(self, response) -> bool:
         result = False
-        if "event" in response and "method" in response and response["method"] == "event":
+        # CHECK SCHEMA
+        if check_schema({"event": None, "method": "event"}, response):
             result = True
+            self.dbg_print(f'Event: {response["event"]}')
             # Callback func
             if self.callback_OnEvent:
                 callback_func = asyncio.create_task(self.callback_OnEvent(self, response["event"], response))
@@ -199,7 +205,7 @@ class Room:
         self.tokenForHttpServer = ''
 
     def on_open(self):
-        self.dbg_print('%s connection "%s" successfully' % (PRODUCT_NAME, self.url)) # dbg_print
+        self.dbg_print('%s connection "%s" successfully' % (PRODUCT_NAME, self.url)) 
         self.setConnectionStatus(ConnectionStatus.connected)
         # Auth
         self.auth(self.pin)
@@ -214,7 +220,7 @@ class Room:
 
     def send_command_to_room(self, command: dict):
         self.connection.send(json.dumps(command))
-        self.dbg_print('Run command: %s' % str(command)) # dbg_print
+        self.dbg_print('Run command: %s' % str(command))
 
     def connect(self, ip: str, pin: str, ws_port:int = 8765) -> bool:
         self.ip = ip
@@ -233,7 +239,7 @@ class Room:
         thread.start_new_thread(self.run, ())
         
     def disconnect(self):
-        self.dbg_print('Connection is closing...') # dbg_print
+        self.dbg_print('Connection is closing...')
         self.setConnectionStatus(ConnectionStatus.close)
 
     def run(self):
@@ -253,7 +259,7 @@ class Room:
     
     def setConnectionStatus(self, status):
         self.connection_status = status
-        self.dbg_print("setStatus: " + self.connection_status.name) # dbg_print
+        self.dbg_print("setStatus: " + self.connection_status.name)
         
     def save_picture_selfview_to_file(self, fileName: str) -> str:
         if self.isReady:
