@@ -115,10 +115,11 @@ class Room:
 
         return result
 
+    # {"requestId":"","method":"auth","previleges":2,"token":"***","tokenForHttpServer":"***","result":true}
     async def processMethodAuth(self, response) -> bool:
         result = False
-        if "method" in response and response["method"] == "auth":
-            # {"requestId":"","method":"auth","previleges":2,"token":"***","tokenForHttpServer":"***","result":true} 
+        # CHECK SCHEMA
+        if check_schema({"method": "auth", "result": None}, response):
             if response["result"]:
                 self.tokenForHttpServer = response["tokenForHttpServer"]
                 self.dbg_print('Get auth successfully: tokenForHttpServer = %s' % "***") # dbg_print
@@ -135,43 +136,40 @@ class Room:
     # {"event":"incomingChatMessage","peerId":"azobov@team.trueconf.com","peerDn":"azobov@team.trueconf.com","message":"zzz","time":1603297004,"confId":"","method":"event"}
     async def processIncomingMessage(self, response) -> bool:
         result = False
-        if "event" in response:
-            self.dbg_print(f'Event: {response["event"]}') # dbg_print
-            # EVENT: incomingChatMessage
-            if response["event"] == "incomingChatMessage" and "message" in response:
-                result = True
-                msg = response["message"]
-                fromId = response["peerId"]
-                fromDn = response["peerDn"]
-                self.dbg_print(f"Message fromId: {fromId}, fromDn: {fromDn}, msg: {msg}")
-                # Callback func
-                if self.callback_OnIncomingMessage:
-                    callback_func = asyncio.create_task(self.callback_OnIncomingMessage(fromId, fromDn, msg))
-                    await callback_func
+        # CHECK SCHEMA
+        if check_schema({"event": "incomingChatMessage", "message": None, "peerId": None, "peerDn": None}, response):
+            result = True
+            msg = response["message"]
+            fromId = response["peerId"]
+            fromDn = response["peerDn"]
+            self.dbg_print(f"Message fromId: {fromId}, fromDn: {fromDn}, msg: {msg}")
+            # Callback func
+            if self.callback_OnIncomingMessage:
+                callback_func = asyncio.create_task(self.callback_OnIncomingMessage(fromId, fromDn, msg))
+                await callback_func
 
         return result
 
     # {"event": "commandReceived", "peerId": "user1@some.server", "command": "text", "method": "event"}
     async def processIncomingCommand(self, response) -> bool:
         result = False
-        if "event" in response:
-            self.dbg_print(f'Event: {response["event"]}') # dbg_print
-            # EVENT: commandReceived
-            if response["event"] == "commandReceived" and "command" in response:
-                result = True
-                cmd = response["command"]
-                fromId = response["peerId"]
-                self.dbg_print(f"Command fromId: {fromId}, cmd: {cmd}")
-                # Callback func
-                if self.callback_OnIncomingCommand:
-                    callback_func = asyncio.create_task(self.callback_OnIncomingCommand(fromId, cmd))
-                    await callback_func
+        # CHECK SCHEMA
+        if check_schema({"event": "commandReceived", "command": None, "peerId": None}, response):
+            result = True
+            cmd = response["command"]
+            fromId = response["peerId"]
+            self.dbg_print(f"Command fromId: {fromId}, cmd: {cmd}")
+            # Callback func
+            if self.callback_OnIncomingCommand:
+                callback_func = asyncio.create_task(self.callback_OnIncomingCommand(fromId, cmd))
+                await callback_func
 
         return result
 
     async def processErrorInResponse(self, response) -> bool:
         result = False
-        if "error" in response:
+        # CHECK SCHEMA
+        if check_schema({"error": None}, response):
             result = True
             self.dbg_print("Room error: " + response["error"])
             self.caughtConnectionError() # any connection errors                           
