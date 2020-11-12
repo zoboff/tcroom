@@ -26,6 +26,27 @@ class ConnectionStatus(Enum):
 class RoomException(Exception):
     pass
 
+def check_schema(schema: dict, dictionary: dict, exclude_from_comparison: list = []) -> bool:
+    schema_d = {k: v for k, v in dictionary.items() if k in schema.keys()}
+    if len(schema) == len(schema_d):
+        # Exclude some values from comparison
+        #  all "key": None
+        exclude = [k for k, v in schema.items() if v is None]
+        #  and all specified
+        exclude.extend(exclude_from_comparison)
+        # Comparison        
+        for k in schema:
+            if k not in exclude:
+                try:
+                    if schema[k].lower() != schema_d[k].lower():
+                        return False
+                except:
+                    return False
+    else:
+        return False    
+
+    return True
+
 class Room:
     def __init__(self, debug_mode, 
                  cb_OnChangeState, 
@@ -74,24 +95,23 @@ class Room:
             pass
     # ===================================================
 
+    # EVENT: appStateChanged
     async def processAppStateChanged(self, response) -> bool:
         result = False
-        if "event" in response:
-            self.dbg_print(f'Event: {response["event"]}') # dbg_print
-            # EVENT: appStateChanged
-            if response["event"] == "appStateChanged" and "appState" in response:
-                result = True
-                self.dbg_print('*** appStateChanged = %s' % response["appState"]) # dbg_print
-                new_state = response["appState"] 
-                if new_state == 3: # Normal
-                    pass
-                else:
-                    pass
+        # CHECK SCHEMA
+        if check_schema({"event": "appStateChanged", "appState": None}, response):
+            result = True
+            self.dbg_print(f'*** appStateChanged = {response["appState"]}') # dbg_print
+            new_state = response["appState"] 
+            if new_state == 3: # Normal
+                pass
+            else:
+                pass
 
-                # Callback func
-                if self.callback_OnChangeState:
-                    callback_func = asyncio.create_task(self.callback_OnChangeState(new_state))
-                    await callback_func
+            # Callback func
+            if self.callback_OnChangeState:
+                callback_func = asyncio.create_task(self.callback_OnChangeState(new_state))
+                await callback_func
 
         return result
 
@@ -319,12 +339,12 @@ class Room:
 
 # =====================================================================
 def make_connection(pin, room_ip = '127.0.0.1', ws_port = 8765, debug_mode = False,
-                    callback_OnChangeState = None, 
+                    cb_OnChangeState = None, 
                     cb_OnIncomingMessage = None,
                     cb_OnIncomingCommand = None,
                     cb_OnEvent = None):
 
-    room = Room(debug_mode, callback_OnChangeState, cb_OnIncomingMessage, cb_OnIncomingCommand, cb_OnEvent)
+    room = Room(debug_mode, cb_OnChangeState, cb_OnIncomingMessage, cb_OnIncomingCommand, cb_OnEvent)
     room.connect(room_ip, pin, ws_port)
 
     # Wait for ~5 sec...
