@@ -188,7 +188,7 @@ class Room:
             self.dbg_print(f'Event: {response["event"]}')
             # Callback func
             if self.callback_OnEvent:
-                callback_func = asyncio.create_task(self.callback_OnEvent(self, response["event"], response))
+                callback_func = asyncio.create_task(self.callback_OnEvent(response["event"], response))
                 await callback_func                                       
 
         return result
