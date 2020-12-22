@@ -326,9 +326,9 @@ class Room:
     def changeBackground(self, fileId: int):
         # make a command
         if int != 0:
-            command = {"method" : "setBackGround", "fileId" : fileId}
+            command = {"method" : "setBackground", "fileId" : fileId}
         else:
-            command = {"method" : "setBackGround"}
+            command = {"method" : "setBackground"}
         # send    
         self.send_command_to_room(command)
 
