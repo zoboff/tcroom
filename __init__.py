@@ -323,6 +323,15 @@ class Room:
         # send    
         self.send_command_to_room(command)
 
+    def changeBackground(self, fileId: int):
+        # make a command
+        if int != 0:
+            command = {"method" : "setBackGround", "fileId" : fileId}
+        else:
+            command = {"method" : "setBackGround"}
+        # send    
+        self.send_command_to_room(command)
+
     ''' {
     "method" : "createConference"
     "title" : "Code review",
