@@ -12,9 +12,13 @@ from enum import Enum
 import os
 import requests
 import asyncio
+import base64
+import json
+import requests
 
 PRODUCT_NAME = 'TrueConf Room'
 URL_SELF_PICTURE = "http://{}:8766/frames/?peerId=%23self%3A0&token={}"
+URL_UPLOAD_FILE = "http://{}:8766/files/?token={}"
 
 class ConnectionStatus(Enum):
     unknown = 0
@@ -225,6 +229,7 @@ class Room:
     def connect(self, ip: str, pin: str, ws_port:int = 8765) -> bool:
         self.ip = ip
         self.pin = pin
+        self.ws_port = ws_port
         self.in_stopping = False
         self.tokenForHttpServer = ''
         # Connect
@@ -323,14 +328,28 @@ class Room:
         # send    
         self.send_command_to_room(command)
 
-    def changeBackground(self, fileId: int):
-        # make a command
-        if int != 0:
-            command = {"method" : "setBackground", "fileId" : fileId}
-        else:
+    def setBackground(self, filePath: str = ""):
+        # Check on file empty
+        if not filePath:
+            print("Empty path")
             command = {"method" : "setBackground"}
-        # send    
-        self.send_command_to_room(command)
+            self.send_command_to_room(command)
+            return
+        try:
+            files = {'file': open(filePath, 'rb')}
+        except IOError:
+            print("File not accessible")
+            return
+        #make request 
+        url = URL_UPLOAD_FILE.format(self.ip, self.tokenForHttpServer)
+        response = requests.post(url, files=files) 
+        if response.status_code == 200 :
+            data = response.headers
+            command = {"method" : "setBackground", "fileId" : int(data["FileId"])}  
+            self.send_command_to_room(command)
+        else:
+            print (response.text)   
+        return
 
     ''' {
     "method" : "createConference"
