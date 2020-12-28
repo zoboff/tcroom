@@ -61,6 +61,7 @@ class Room:
         self.debug_mode = debug_mode
 
         self.connection_status = ConnectionStatus.unknown
+        self.app_state = 0
         self.ip = ''
         self.pin = ''
         self.url = ''
@@ -108,7 +109,8 @@ class Room:
         if check_schema({"event": "appStateChanged", "appState": None}, response):
             result = True
             self.dbg_print(f'*** appStateChanged = {response["appState"]}')
-            new_state = response["appState"] 
+            new_state = response["appState"]
+            self.app_state = new_state
             if new_state == 3: # Normal
                 pass
             else:
@@ -118,6 +120,10 @@ class Room:
             if self.callback_OnChangeState:
                 callback_func = asyncio.create_task(self.callback_OnChangeState(new_state))
                 await callback_func
+        elif check_schema({"appState": None, "method": "getAppState", "result": None}, response):
+            result = True
+            new_state = response["appState"]
+            self.app_state = new_state
 
         return result
 
@@ -131,6 +137,7 @@ class Room:
                 self.dbg_print('Get auth successfully: tokenForHttpServer = %s' % "***")
                 self.setConnectionStatus(ConnectionStatus.normal)
                 result = True
+                self.requestAppState()
             else:
                 result = True
                 self.dbg_print('Get auth error')
@@ -277,6 +284,18 @@ class Room:
             raise RoomException('{} is not ready to take a picture'.format(PRODUCT_NAME, self.ip))
         
         return fileName
+    
+    ''' getAppState
+       * none       = 0 (No connection to the server and the terminal does nothing),
+       * connect    = 1 (the terminal tries to connect to the server),
+       * login      = 2 (you need to login),
+       * normal     = 3 (the terminal is connected to the server and logged in),
+       * wait       = 4 (the terminal is pending: either it calls somebody or somebody calls it),
+       * conference = 5 (the terminal is in the conference),
+       * close      = 6 (the terminal is finishing the conference)
+    '''    
+    def getAppState(self) -> int:
+        return self.app_state
     # =============================================================
     def auth(self, pin: str):
         if pin:
@@ -335,11 +354,13 @@ class Room:
             command = {"method" : "setBackground"}
             self.send_command_to_room(command)
             return
+
         try:
             files = {'file': open(filePath, 'rb')}
         except IOError:
             print("File not accessible")
             return
+
         #make request 
         url = URL_UPLOAD_FILE.format(self.ip, self.tokenForHttpServer)
         response = requests.post(url, files=files) 
@@ -348,7 +369,7 @@ class Room:
             command = {"method" : "setBackground", "fileId" : int(data["FileId"])}  
             self.send_command_to_room(command)
         else:
-            print (response.text)   
+            self.dbg_print(response.text)   
         return
 
     ''' {
@@ -366,6 +387,12 @@ class Room:
         # make a command
         command = {"method" : "createConference", "title" : title, "confType" : "symmetric", 
                    "autoAccept": autoAccept, "inviteList": inviteList}
+        # send    
+        self.send_command_to_room(command)
+        
+    def requestAppState(self):
+        # make a command
+        command = {"method": "getAppState"}
         # send    
         self.send_command_to_room(command)
 
