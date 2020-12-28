@@ -12,9 +12,13 @@ from enum import Enum
 import os
 import requests
 import asyncio
+import base64
+import json
+import requests
 
 PRODUCT_NAME = 'TrueConf Room'
 URL_SELF_PICTURE = "http://{}:8766/frames/?peerId=%23self%3A0&token={}"
+URL_UPLOAD_FILE = "http://{}:8766/files/?token={}"
 
 class ConnectionStatus(Enum):
     unknown = 0
@@ -57,6 +61,7 @@ class Room:
         self.debug_mode = debug_mode
 
         self.connection_status = ConnectionStatus.unknown
+        self.app_state = 0
         self.ip = ''
         self.pin = ''
         self.url = ''
@@ -105,6 +110,7 @@ class Room:
             result = True
             self.dbg_print(f'*** appStateChanged = {response["appState"]}')
             new_state = response["appState"] 
+            self.app_state = new_state
             if new_state == 3: # Normal
                 pass
             else:
@@ -114,6 +120,10 @@ class Room:
             if self.callback_OnChangeState:
                 callback_func = asyncio.create_task(self.callback_OnChangeState(new_state))
                 await callback_func
+        elif check_schema({"appState": None, "method": "getAppState", "result": None}, response):
+            result = True
+            new_state = response["appState"]
+            self.app_state = new_state
 
         return result
 
