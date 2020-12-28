@@ -130,6 +130,7 @@ class Room:
             else:
                 result = True
                 self.dbg_print('Get auth error')
+                self.dbg_print(response)
                 self.disconnect()
                 self.caughtConnectionError() # any connection errors
 
@@ -207,6 +208,8 @@ class Room:
     def on_open(self):
         self.dbg_print('%s connection "%s" successfully' % (PRODUCT_NAME, self.url)) 
         self.setConnectionStatus(ConnectionStatus.connected)
+        #self.setUsedApiVersion_1()
+        time.sleep(0.1)
         # Auth
         self.auth(self.pin)
 
@@ -273,6 +276,12 @@ class Room:
         
         return fileName
     # =============================================================
+    def setUsedApiVersion_1(self):
+        # make a command
+        command = {"method": "setUsedApiVersion", "version": "1"}
+        # send
+        self.send_command_to_room(command)
+
     def auth(self, pin: str):
         if pin:
             command = {"method" : "auth","type" : "secured", "credentials" : pin}
@@ -284,7 +293,7 @@ class Room:
     def call(self, peerId: str) -> None:
         # make a command        
         command = {"method": "call", "peerId": peerId}    
-        # send    
+        # send
         self.send_command_to_room(command)
 
     def accept(self):
@@ -340,6 +349,13 @@ class Room:
                    "autoAccept": autoAccept, "inviteList": inviteList}
         # send    
         self.send_command_to_room(command)
+        
+    def connectToServer(self, server: str, port: int = 4307):
+        # make a command
+        command = {"method" : "connectToServer", "server" : server, "port": port}
+        # send    
+        self.send_command_to_room(command)
+        
 
 # =====================================================================
 def make_connection(pin, room_ip = '127.0.0.1', ws_port = 8765, debug_mode = False,
