@@ -127,6 +127,7 @@ class Room:
                 self.dbg_print('Get auth successfully: tokenForHttpServer = %s' % "***")
                 self.setConnectionStatus(ConnectionStatus.normal)
                 result = True
+                self.requestAppState()
             else:
                 result = True
                 self.dbg_print('Get auth error')
@@ -228,6 +229,7 @@ class Room:
     def connect(self, ip: str, pin: str, ws_port:int = 8765) -> bool:
         self.ip = ip
         self.pin = pin
+        self.ws_port = ws_port
         self.in_stopping = False
         self.tokenForHttpServer = ''
         # Connect
@@ -275,6 +277,18 @@ class Room:
             raise RoomException('{} is not ready to take a picture'.format(PRODUCT_NAME, self.ip))
         
         return fileName
+    
+    ''' getAppState
+       * none       = 0 (No connection to the server and the terminal does nothing),
+       * connect    = 1 (the terminal tries to connect to the server),
+       * login      = 2 (you need to login),
+       * normal     = 3 (the terminal is connected to the server and logged in),
+       * wait       = 4 (the terminal is pending: either it calls somebody or somebody calls it),
+       * conference = 5 (the terminal is in the conference),
+       * close      = 6 (the terminal is finishing the conference)
+    '''    
+    def getAppState(self) -> int:
+        return self.app_state
     # =============================================================
     def setUsedApiVersion_1(self):
         # make a command
@@ -293,7 +307,7 @@ class Room:
     def call(self, peerId: str) -> None:
         # make a command        
         command = {"method": "call", "peerId": peerId}    
-        # send
+        # send    
         self.send_command_to_room(command)
 
     def accept(self):
@@ -332,6 +346,31 @@ class Room:
         # send    
         self.send_command_to_room(command)
 
+    def setBackground(self, filePath: str = ""):
+        # Check on file empty
+        if not filePath:
+            print("Empty path")
+            command = {"method" : "setBackground"}
+            self.send_command_to_room(command)
+            return
+
+        try:
+            files = {'file': open(filePath, 'rb')}
+        except IOError:
+            print("File not accessible")
+            return
+
+        #make request 
+        url = URL_UPLOAD_FILE.format(self.ip, self.tokenForHttpServer)
+        response = requests.post(url, files=files) 
+        if response.status_code == 200 :
+            data = response.headers
+            command = {"method" : "setBackground", "fileId" : int(data["FileId"])}  
+            self.send_command_to_room(command)
+        else:
+            self.dbg_print(response.text)   
+        return
+
     ''' {
     "method" : "createConference"
     "title" : "Code review",
@@ -349,13 +388,18 @@ class Room:
                    "autoAccept": autoAccept, "inviteList": inviteList}
         # send    
         self.send_command_to_room(command)
-        
+
     def connectToServer(self, server: str, port: int = 4307):
         # make a command
         command = {"method" : "connectToServer", "server" : server, "port": port}
         # send    
         self.send_command_to_room(command)
         
+    def requestAppState(self):
+        # make a command
+        command = {"method": "getAppState"}
+        # send    
+        self.send_command_to_room(command)
 
 # =====================================================================
 def make_connection(pin, room_ip = '127.0.0.1', ws_port = 8765, debug_mode = False,
