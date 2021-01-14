@@ -30,6 +30,10 @@ class ConnectionStatus(Enum):
 class RoomException(Exception):
     pass
 
+class ConnectToRoomException(RoomException):
+    pass
+
+
 def check_schema(schema: dict, dictionary: dict, exclude_from_comparison: list = []) -> bool:
     schema_d = {k: v for k, v in dictionary.items() if k in schema.keys()}
     if len(schema) == len(schema_d):
@@ -270,7 +274,7 @@ class Room:
         return self.connection_status in [ConnectionStatus.connected, ConnectionStatus.normal]
     
     def caughtConnectionError(self):
-        raise RoomException('{} is not running or wrong IP address or wrong PIN. IP="{}"'.format(PRODUCT_NAME, self.ip))
+        raise ConnectToRoomException('{} is not running or wrong IP address or wrong PIN. IP="{}"'.format(PRODUCT_NAME, self.ip))
     
     def setConnectionStatus(self, status):
         self.connection_status = status
