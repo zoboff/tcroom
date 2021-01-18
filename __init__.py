@@ -15,6 +15,7 @@ import asyncio
 import base64
 import json
 import requests
+import sys
 
 PRODUCT_NAME = 'TrueConf Room'
 URL_SELF_PICTURE = "http://{}:8766/frames/?peerId=%23self%3A0&token={}"
@@ -66,6 +67,7 @@ class Room:
 
         self.connection_status = ConnectionStatus.unknown
         self.app_state = 0
+        self.app_state_queue = []
         self.ip = ''
         self.pin = ''
         self.url = ''
@@ -108,6 +110,13 @@ class Room:
 
     # EVENT: appStateChanged
     async def processAppStateChanged(self, response) -> bool:
+
+        # add to queue
+        def add_state_to_queue(state: int):
+            self.app_state_queue.insert(0, state)
+            if len(self.app_state_queue) > 10:
+                self.app_state_queue = self.app_state_queue[0:10]
+
         result = False
         # CHECK SCHEMA
         if check_schema({"event": "appStateChanged", "appState": None}, response):
@@ -115,14 +124,17 @@ class Room:
             self.dbg_print(f'*** appStateChanged = {response["appState"]}')
             new_state = response["appState"] 
             self.app_state = new_state
-            if new_state == 3: # Normal
+            # queue
+            add_state_to_queue(self.app_state)
+            
+            if self.app_state == 3: # Normal
                 pass
             else:
                 pass
 
             # Callback func
             if self.callback_OnChangeState:
-                callback_func = asyncio.create_task(self.callback_OnChangeState(new_state))
+                callback_func = asyncio.create_task(self.callback_OnChangeState(self.app_state))
                 await callback_func
         elif check_schema({"appState": None, "method": "getAppState", "result": None}, response):
             result = True
