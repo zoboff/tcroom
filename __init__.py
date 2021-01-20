@@ -257,7 +257,7 @@ class Room:
         self.pin = pin
         self.ws_port = ws_port
         self.in_stopping = False
-        self.tokenForHttpServer = ''
+        self.tokenForHttpServer = None
         # Connect
         self.url = f'ws://{self.ip}:{ws_port}'
         self.connection = websocket.WebSocketApp(self.url,
@@ -293,14 +293,15 @@ class Room:
         self.dbg_print("setStatus: " + self.connection_status.name)
         
     def save_picture_selfview_to_file(self, fileName: str) -> str:
-        if self.isReady:
+        if self.isReady() and self.tokenForHttpServer:
             url = URL_SELF_PICTURE.format(self.ip, self.tokenForHttpServer)
             with open(os.path.join(fileName), 'wb') as out_stream:
                 req = requests.get(url, stream=True)
                 for chunk in req.iter_content(10240):
                     out_stream.write(chunk)
         else:
-            raise RoomException('{} is not ready to take a picture'.format(PRODUCT_NAME, self.ip))
+            #raise RoomException('{} is not ready to take a picture'.format(PRODUCT_NAME, self.ip))
+            return None
         
         return fileName
     
