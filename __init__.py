@@ -13,13 +13,43 @@ import os
 import requests
 import asyncio
 import base64
-import json
-import requests
 import sys
 
 PRODUCT_NAME = 'TrueConf Room'
-URL_SELF_PICTURE = "http://{}:8766/frames/?peerId=%23self%3A0&token={}"
-URL_UPLOAD_FILE = "http://{}:8766/files/?token={}"
+# PORTS: c:\ProgramData\TrueConf\Room\web\default\config.json
+URL_SELF_PICTURE = "http://{}:{}/frames/?peerId=%23self%3A0&token={}"
+URL_UPLOAD_FILE = "http://{}:{}/files/?token={}"
+#CONFIG_JSON_FILE = "c:\ProgramData\TrueConf\Room\web\default\config.json"
+CONFIG_JSON_URL ="http://localhost:{}/public/default/config.json"
+DEFAULT_WEBSOCKET_PORT = 8765
+DEFAULT_HTTP_PORT = 8766
+DEFAULT_ROOM_PORT = 80
+
+def getHttpPort(room_port: int) -> int:
+    try:
+        json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
+        data = json_file.json()
+        port = data["config"]["http"]["port"]
+
+        print(f'Room HTTP port: {port}')
+    except:
+        port = DEFAULT_HTTP_PORT
+        print(f'Room HTTP port (default): {port}')
+    
+    return port
+
+def getWebsocketPort(room_port: int) -> int:
+    try:
+        json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
+        data = json_file.json()
+        port = data["config"]["websocket"]["port"]
+            
+        print(f'Room WebSocket port: {port}')
+    except:
+        port = DEFAULT_WEBSOCKET_PORT
+        print(f'Room WebSocket port (default): {port}')
+    
+    return port
 
 class ConnectionStatus(Enum):
     unknown = 0
@@ -33,7 +63,6 @@ class RoomException(Exception):
 
 class ConnectToRoomException(RoomException):
     pass
-
 
 def check_schema(schema: dict, dictionary: dict, exclude_from_comparison: list = []) -> bool:
     schema_d = {k: v for k, v in dictionary.items() if k in schema.keys()}
@@ -72,6 +101,7 @@ class Room:
         self.pin = ''
         self.url = ''
         self.tokenForHttpServer = ''
+        self.HttpPort = None
 
         self.connection = None
         
@@ -252,14 +282,16 @@ class Room:
         self.connection.send(json.dumps(command))
         self.dbg_print('Run command: %s' % str(command))
 
-    def connect(self, ip: str, pin: str, ws_port:int = 8765) -> bool:
+    def connect(self, ip: str, port: int, pin: str) -> bool:
         self.ip = ip
         self.pin = pin
-        self.ws_port = ws_port
         self.in_stopping = False
         self.tokenForHttpServer = None
+
+        self.wsPort = getWebsocketPort(port)
+        self.httpPort = getHttpPort(port)
         # Connect
-        self.url = f'ws://{self.ip}:{ws_port}'
+        self.url = f'ws://{self.ip}:{self.wsPort}'
         self.connection = websocket.WebSocketApp(self.url,
                                   on_message = self.on_message,
                                   on_error = self.on_error,
@@ -286,7 +318,7 @@ class Room:
         return self.connection_status in [ConnectionStatus.connected, ConnectionStatus.normal]
     
     def caughtConnectionError(self):
-        raise ConnectToRoomException('{} is not running or wrong IP address or wrong PIN. IP="{}"'.format(PRODUCT_NAME, self.ip))
+        raise ConnectToRoomException('{} is not running or wrong IP address, PIN, Port. IP="{}"'.format(PRODUCT_NAME, self.ip))
     
     def setConnectionStatus(self, status):
         self.connection_status = status
@@ -294,7 +326,7 @@ class Room:
         
     def save_picture_selfview_to_file(self, fileName: str) -> str:
         if self.isReady() and self.tokenForHttpServer:
-            url = URL_SELF_PICTURE.format(self.ip, self.tokenForHttpServer)
+            url = URL_SELF_PICTURE.format(self.ip, self.httpPort, self.tokenForHttpServer)
             with open(os.path.join(fileName), 'wb') as out_stream:
                 req = requests.get(url, stream=True)
                 for chunk in req.iter_content(10240):
@@ -388,7 +420,7 @@ class Room:
             return
 
         #make request 
-        url = URL_UPLOAD_FILE.format(self.ip, self.tokenForHttpServer)
+        url = URL_UPLOAD_FILE.format(self.ip, self.HttpPort, self.tokenForHttpServer)
         response = requests.post(url, files=files) 
         if response.status_code == 200 :
             data = response.headers
@@ -429,14 +461,14 @@ class Room:
         self.send_command_to_room(command)
 
 # =====================================================================
-def make_connection(pin, room_ip = '127.0.0.1', ws_port = 8765, debug_mode = False,
+def make_connection(pin, room_ip = '127.0.0.1', port = 80, debug_mode = False,
                     cb_OnChangeState = None, 
                     cb_OnIncomingMessage = None,
                     cb_OnIncomingCommand = None,
                     cb_OnEvent = None):
 
     room = Room(debug_mode, cb_OnChangeState, cb_OnIncomingMessage, cb_OnIncomingCommand, cb_OnEvent)
-    room.connect(room_ip, pin, ws_port)
+    room.connect(ip=room_ip, pin=pin, port=port)
 
     # Wait for ~5 sec...
     WAIT_FOR_SEC, SLEEP = 5, 0.1
