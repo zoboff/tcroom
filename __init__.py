@@ -245,8 +245,9 @@ class Room:
         # CHECK SCHEMA
         if check_schema({"error": None}, response):
             result = True
-            self.dbg_print("Room error: " + response["error"])
-            self.caughtConnectionError() # any connection errors                           
+            s = f'Room error: {response["error"]}'
+            self.dbg_print(s)
+            logging.error(s)                           
 
         return result
 
@@ -299,7 +300,7 @@ class Room:
         self.connection.send(json.dumps(command))
         self.dbg_print(f'Run command: {str(command)}')
 
-    def connect(self, ip: str, port: int, pin: str) -> bool:
+    def connect(self, ip: str, port: int, pin: str = None) -> bool:
         self.ip = ip
         self.pin = pin
         self.in_stopping = False
@@ -478,7 +479,7 @@ class Room:
         self.send_command_to_room(command)
 
 # =====================================================================
-def make_connection(pin, room_ip = '127.0.0.1', port = 80, debug_mode = False,
+def make_connection(pin=None, room_ip = '127.0.0.1', port = 80, debug_mode = False,
                     cb_OnChangeState = None, 
                     cb_OnIncomingMessage = None,
                     cb_OnIncomingCommand = None,
