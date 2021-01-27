@@ -14,6 +14,7 @@ import requests
 import asyncio
 import base64
 import sys
+from datetime import datetime
 
 PRODUCT_NAME = 'TrueConf Room'
 # PORTS: c:\ProgramData\TrueConf\Room\web\default\config.json
@@ -25,16 +26,22 @@ DEFAULT_WEBSOCKET_PORT = 8765
 DEFAULT_HTTP_PORT = 8766
 DEFAULT_ROOM_PORT = 80
 
+logging.basicConfig(filename=f'tcroom-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+
 def getHttpPort(room_port: int) -> int:
     try:
         json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
         data = json_file.json()
         port = data["config"]["http"]["port"]
 
-        print(f'Room HTTP port: {port}')
+        s = f'Room HTTP port: {port}'
+        print(s)
+        logging.debug(s)
     except:
         port = DEFAULT_HTTP_PORT
-        print(f'Room HTTP port (default): {port}')
+        s = f'Room HTTP port (default): {port}'
+        print(s)
+        logging.debug(s)
     
     return port
 
@@ -43,11 +50,15 @@ def getWebsocketPort(room_port: int) -> int:
         json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
         data = json_file.json()
         port = data["config"]["websocket"]["port"]
-            
-        print(f'Room WebSocket port: {port}')
+        
+        s = f'Room WebSocket port: {port}'
+        print(s)
+        logging.debug(s)
     except:
         port = DEFAULT_WEBSOCKET_PORT
-        print(f'Room WebSocket port (default): {port}')
+        s = f'Room WebSocket port (default): {port}'
+        print(s)
+        logging.debug(s)
     
     return port
 
@@ -59,7 +70,10 @@ class ConnectionStatus(Enum):
     close = 4
 
 class RoomException(Exception):
-    pass
+    def __init__(self, message, errors):
+        super().__init__(message)
+        self.errors = errors
+        logging.error(message)
 
 class ConnectToRoomException(RoomException):
     pass
@@ -109,11 +123,12 @@ class Room:
         self.callback_OnIncomingMessage = cb_OnIncomingMessage
         self.callback_OnIncomingCommand = cb_OnIncomingCommand
         self.callback_OnEvent = cb_OnEvent
-
+        
     def __del__(self):
         pass
 
     def dbg_print(self, value: str) -> None:
+        logging.debug(value)
         if self.debug_mode:
             print(value)
 
@@ -280,7 +295,7 @@ class Room:
 
     def send_command_to_room(self, command: dict):
         self.connection.send(json.dumps(command))
-        self.dbg_print('Run command: %s' % str(command))
+        self.dbg_print(f'Run command: {str(command)}')
 
     def connect(self, ip: str, port: int, pin: str) -> bool:
         self.ip = ip
