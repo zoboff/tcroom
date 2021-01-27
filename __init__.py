@@ -70,9 +70,8 @@ class ConnectionStatus(Enum):
     close = 4
 
 class RoomException(Exception):
-    def __init__(self, message, errors):
+    def __init__(self, message):
         super().__init__(message)
-        self.errors = errors
         logging.error(message)
 
 class ConnectToRoomException(RoomException):
@@ -270,7 +269,9 @@ class Room:
         asyncio.run(self.processMessage(message))
 
     def on_error(self, error):
-        self.dbg_print("WebSocket error: " + error)
+        s = f'WebSocket connection error: {error}'
+        print(s)
+        raise ConnectToRoomException(s)
 
     def on_close(self):
         self.dbg_print("Close socket connection")
