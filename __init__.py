@@ -271,7 +271,8 @@ class Room:
     def on_error(self, error):
         s = f'WebSocket connection error: {error}'
         print(s)
-        raise ConnectToRoomException(s)
+        logging.error(s)
+        #raise ConnectToRoomException(s)
 
     def on_close(self):
         self.dbg_print("Close socket connection")
