@@ -103,7 +103,8 @@ class Room:
                  cb_OnChangeState, 
                  cb_OnIncomingMessage, 
                  cb_OnIncomingCommand,
-                 cb_OnEvent):
+                 cb_OnEvent,
+                 cb_OnMethod):
 
         self.debug_mode = debug_mode
 
@@ -122,6 +123,7 @@ class Room:
         self.callback_OnIncomingMessage = cb_OnIncomingMessage
         self.callback_OnIncomingCommand = cb_OnIncomingCommand
         self.callback_OnEvent = cb_OnEvent
+        self.callback_OnMethod = cb_OnMethod
         
     def __del__(self):
         pass
@@ -147,7 +149,9 @@ class Room:
         elif await self.processErrorInResponse(response):
             self.dbg_print('Processed in processErrorInResponse')
         elif await self.processEvents(response):
-            self.dbg_print('Processed in processEvents')
+            self.dbg_print('Processed in processEvents') 
+        elif await self.processMethods(response):
+            self.dbg_print('Processed in processMethods') 
         else:
             self.dbg_print(f'No one handled the event: {msg}')
     # ===================================================
@@ -262,6 +266,20 @@ class Room:
             # Callback func
             if self.callback_OnEvent:
                 callback_func = asyncio.create_task(self.callback_OnEvent(response["event"], response))
+                await callback_func                                       
+
+        return result
+
+    # Unprocessing methods
+    # {"method": None} and not {"event": None}
+    async def processMethods(self, response) -> bool:
+        result = check_schema({"method": None}, response) and not check_schema({"event": None}, response)
+        if result:
+            self.dbg_print(f'Method: {response["method"]}')
+            self.dbg_print(f'  Response: {response}')
+            # Callback func
+            if self.callback_OnMethod:
+                callback_func = asyncio.create_task(self.callback_OnMethod(response["method"], response))
                 await callback_func                                       
 
         return result
@@ -483,9 +501,10 @@ def make_connection(pin=None, room_ip = '127.0.0.1', port = 80, debug_mode = Fal
                     cb_OnChangeState = None, 
                     cb_OnIncomingMessage = None,
                     cb_OnIncomingCommand = None,
-                    cb_OnEvent = None):
+                    cb_OnEvent = None,
+                    cb_OnMethod = None):
 
-    room = Room(debug_mode, cb_OnChangeState, cb_OnIncomingMessage, cb_OnIncomingCommand, cb_OnEvent)
+    room = Room(debug_mode, cb_OnChangeState, cb_OnIncomingMessage, cb_OnIncomingCommand, cb_OnEvent, cb_OnMethod)
     room.connect(ip=room_ip, pin=pin, port=port)
 
     # Wait for ~5 sec...
