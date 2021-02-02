@@ -116,6 +116,9 @@ class Room:
         self.url = ''
         self.tokenForHttpServer = ''
         self.HttpPort = None
+        
+        self.systemInfo = {}
+        self.settings = {}
 
         self.connection = None
         
@@ -201,7 +204,10 @@ class Room:
                 self.dbg_print('Get auth successfully: tokenForHttpServer = %s' % "***")
                 self.setConnectionStatus(ConnectionStatus.normal)
                 result = True
+                # requests Info
                 self.requestAppState()
+                self.requestSettings()
+                self.requestSystemInfo()
             else:
                 result = True
                 self.dbg_print('Get auth error')
@@ -275,11 +281,22 @@ class Room:
     async def processMethods(self, response) -> bool:
         result = check_schema({"method": None}, response) and not check_schema({"event": None}, response)
         if result:
-            self.dbg_print(f'Method: {response["method"]}')
+            method_name = response["method"]
+            self.dbg_print(f'Method: {method_name}')
             self.dbg_print(f'  Response: {response}')
+
+            # ================================================
+            # for self
+            # ================================================
+            if "getSystemInfo".lower() == method_name.lower():
+                self.systemInfo = response
+            elif "getSettings".lower() == method_name.lower():
+                self.settings = response
+            # ================================================
+
             # Callback func
             if self.callback_OnMethod:
-                callback_func = asyncio.create_task(self.callback_OnMethod(response["method"], response))
+                callback_func = asyncio.create_task(self.callback_OnMethod(method_name, response))
                 await callback_func                                       
 
         return result
@@ -411,9 +428,15 @@ class Room:
         # send    
         self.send_command_to_room(command)
                 
-    def getSettings(self):
+    def requestSettings(self):
         # make a command        
         command = {"method" : "getSettings"}    
+        # send    
+        self.send_command_to_room(command)
+
+    def requestSystemInfo(self):
+        # make a command        
+        command = {"method" : "getSystemInfo"}    
         # send    
         self.send_command_to_room(command)
 
