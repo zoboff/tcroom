@@ -26,9 +26,15 @@ DEFAULT_WEBSOCKET_PORT = 8765
 DEFAULT_HTTP_PORT = 8766
 DEFAULT_ROOM_PORT = 80
 
-logging.basicConfig(filename=f'tcroom-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+try:
+    logging.basicConfig(filename=f'tcroom-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+except Exception as e:
+    print(f'===\r\nError:\r\n{e}\r\n===')
+    raise
+    
 
 def getHttpPort(room_port: int) -> int:
+    '''Get the current HTTP TrueConf Room's port. The TrueConf Room application must be launched'''
     try:
         json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
         data = json_file.json()
@@ -46,6 +52,7 @@ def getHttpPort(room_port: int) -> int:
     return port
 
 def getWebsocketPort(room_port: int) -> int:
+    '''Get the current websocket TrueConf Room's port. The TrueConf Room application must be launched'''
     try:
         json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
         data = json_file.json()
@@ -119,6 +126,7 @@ class Room:
         
         self.systemInfo = {}
         self.settings = {}
+        self.monitorsInfo = {}
 
         self.connection = None
         
@@ -208,6 +216,7 @@ class Room:
                 self.requestAppState()
                 self.requestSettings()
                 self.requestSystemInfo()
+                self.requestMonitorsInfo()
             else:
                 result = True
                 self.dbg_print('Get auth error')
@@ -292,6 +301,8 @@ class Room:
                 self.systemInfo = response
             elif "getSettings".lower() == method_name.lower():
                 self.settings = response
+            elif "getMonitorsInfo".lower() == method_name.lower():
+                self.monitorsInfo = response
             # ================================================
 
             # Callback func
@@ -518,7 +529,12 @@ class Room:
         command = {"method": "getAppState"}
         # send    
         self.send_command_to_room(command)
-
+        
+    def requestMonitorsInfo(self):
+        # make a command
+        command = {"method": "getMonitorsInfo"}
+        # send    
+        self.send_command_to_room(command)
 # =====================================================================
 def make_connection(pin=None, room_ip = '127.0.0.1', port = 80, debug_mode = False,
                     cb_OnChangeState = None, 
@@ -526,6 +542,9 @@ def make_connection(pin=None, room_ip = '127.0.0.1', port = 80, debug_mode = Fal
                     cb_OnIncomingCommand = None,
                     cb_OnEvent = None,
                     cb_OnMethod = None):
+    '''
+    Connect to TrueConf Room. The TrueConf Room application must be launched
+    '''
 
     room = Room(debug_mode, cb_OnChangeState, cb_OnIncomingMessage, cb_OnIncomingCommand, cb_OnEvent, cb_OnMethod)
     room.connect(ip=room_ip, pin=pin, port=port)
