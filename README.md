@@ -10,7 +10,7 @@ pip install requests
 # Usage
 
 ## Step 1
-Start TrueConf Room application with *-pin* parameter.
+Start **TrueConf Room** application with **-pin** parameter.
 
 Example of launching from the command line :
 ```
