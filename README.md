@@ -8,6 +8,16 @@ pip install requests
 ```
 
 # Usage
+
+## Step 1
+Start TrueConf Room application with *-pin* parameter.
+
+Example of launching from the command line :
+```
+"C:\Program Files\TrueConf\Room\TrueConfRoom.exe" -pin "123"
+```
+
+## Step 2
 ```
 import tcroom
 
