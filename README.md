@@ -1,6 +1,12 @@
 # tcroom
 This module use TrueConf Room API
 
+# Install required modules
+```
+pip install websocket-client
+pip install requests
+```
+
 # Usage
 ```
 import tcroom
