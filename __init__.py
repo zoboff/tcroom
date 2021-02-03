@@ -438,7 +438,7 @@ class Room:
         command = {"method" : "accept"}    
         # send    
         self.send_command_to_room(command)
-                
+        
     def requestSettings(self):
         # make a command        
         command = {"method" : "getSettings"}    
@@ -535,6 +535,13 @@ class Room:
         command = {"method": "getMonitorsInfo"}
         # send    
         self.send_command_to_room(command)
+        
+    def setSettings(self, settings: dict):
+        # make a command
+        command = {"method" : "setSettings", "settings": settings}    
+        # send    
+        self.send_command_to_room(command)
+
 # =====================================================================
 def make_connection(pin=None, room_ip = '127.0.0.1', port = 80, debug_mode = False,
                     cb_OnChangeState = None, 
