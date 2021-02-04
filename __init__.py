@@ -164,7 +164,7 @@ class Room:
         elif await self.processMethods(response):
             self.dbg_print('Processed in processMethods') 
         else:
-            self.dbg_print(f'No one handled the event: {msg}')
+            self.dbg_print(f'Warning! No one handled: {msg}')
     # ===================================================
 
     # EVENT: appStateChanged
@@ -292,7 +292,7 @@ class Room:
         if result:
             method_name = response["method"]
             self.dbg_print(f'Method: {method_name}')
-            self.dbg_print(f'  Response: {response}')
+            #self.dbg_print(f'  Response: {response}')
 
             # ================================================
             # for self
@@ -538,7 +538,13 @@ class Room:
         
     def setSettings(self, settings: dict):
         # make a command
-        command = {"method" : "setSettings", "settings": settings}    
+        command = {"method" : "setSettings", "settings": settings}
+        # send    
+        self.send_command_to_room(command)
+        
+    def shutdownRoom(self, forAll: bool):
+        # make a command
+        command = {"method" : "shutdown", "forAll" : forAll}
         # send    
         self.send_command_to_room(command)
 
