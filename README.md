@@ -1,15 +1,18 @@
-# tcroom
-This module use TrueConf Room API
+This module uses TrueConf Room API
 
-# Install required modules
+# Prerequisites
+
+1. [Python 3.8.6](https://www.python.org/downloads/release/python-386/)
+1. [pipenv](https://pipenv.pypa.io/en/latest/)
+
+
+# Installation
 ```
-pip install websocket-client
-pip install requests
+pipenv install
 ```
 
 # Usage
 
-## Step 1
 Start **TrueConf Room** application with **-pin** parameter.
 
 Example of launching from the command line :
@@ -17,7 +20,8 @@ Example of launching from the command line :
 "C:\Program Files\TrueConf\Room\TrueConfRoom.exe" -pin "123"
 ```
 
-## Step 2
+Connect to TrueConf Room:
+
 ```
 import tcroom
 
