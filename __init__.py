@@ -1,4 +1,5 @@
 import websocket
+
 try:
     import thread
 except ImportError:
@@ -7,31 +8,41 @@ except ImportError:
 import time
 import json
 import logging
-import threading
-from enum import Enum
 import os
 import requests
 import asyncio
-import base64
-import sys
-from datetime import datetime
+
+from logging.handlers import RotatingFileHandler
+from logging import Formatter
+from enum import Enum
+
+# PORTS: c:\ProgramData\TrueConf\Room\web\default\config.json
+# CONFIG_JSON_FILE = "c:\ProgramData\TrueConf\Room\web\default\config.json"
 
 PRODUCT_NAME = 'TrueConf Room'
-# PORTS: c:\ProgramData\TrueConf\Room\web\default\config.json
 URL_SELF_PICTURE = "http://{}:{}/frames/?peerId=%23self%3A0&token={}"
 URL_UPLOAD_FILE = "http://{}:{}/files/?token={}"
-#CONFIG_JSON_FILE = "c:\ProgramData\TrueConf\Room\web\default\config.json"
-CONFIG_JSON_URL ="http://localhost:{}/public/default/config.json"
+CONFIG_JSON_URL = "http://localhost:{}/public/default/config.json"
 DEFAULT_WEBSOCKET_PORT = 8765
 DEFAULT_HTTP_PORT = 8766
 DEFAULT_ROOM_PORT = 80
 
-try:
-    logging.basicConfig(filename=f'tcroom-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-except Exception as e:
-    print(f'===\r\nError:\r\n{e}\r\n===')
-    raise
-    
+logger = logging.getLogger('tcroom')
+logger.setLevel(logging.DEBUG)
+
+rotation_handler = logging.handlers.RotatingFileHandler(
+    filename='tcroom.log',
+    maxBytes=1024 ** 2 * 10,  # 10 MB
+    backupCount=3
+)
+rotation_handler.setFormatter(Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+logger.addHandler(rotation_handler)
+logger.addHandler(console_handler)
+
 
 def getHttpPort(room_port: int) -> int:
     '''Get the current HTTP TrueConf Room's port. The TrueConf Room application must be launched'''
@@ -42,14 +53,15 @@ def getHttpPort(room_port: int) -> int:
 
         s = f'Room HTTP port: {port}'
         print(s)
-        logging.debug(s)
+        logger.debug(s)
     except:
         port = DEFAULT_HTTP_PORT
         s = f'Room HTTP port (default): {port}'
         print(s)
-        logging.debug(s)
-    
+        logger.debug(s)
+
     return port
+
 
 def getWebsocketPort(room_port: int) -> int:
     '''Get the current websocket TrueConf Room's port. The TrueConf Room application must be launched'''
@@ -57,17 +69,18 @@ def getWebsocketPort(room_port: int) -> int:
         json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
         data = json_file.json()
         port = data["config"]["websocket"]["port"]
-        
+
         s = f'Room WebSocket port: {port}'
         print(s)
-        logging.debug(s)
+        logger.debug(s)
     except:
         port = DEFAULT_WEBSOCKET_PORT
         s = f'Room WebSocket port (default): {port}'
         print(s)
-        logging.debug(s)
-    
+        logger.debug(s)
+
     return port
+
 
 class ConnectionStatus(Enum):
     unknown = 0
@@ -76,13 +89,16 @@ class ConnectionStatus(Enum):
     normal = 3
     close = 4
 
+
 class RoomException(Exception):
     def __init__(self, message):
         super().__init__(message)
-        logging.error(message)
+        logger.error(message)
+
 
 class ConnectToRoomException(RoomException):
     pass
+
 
 def check_schema(schema: dict, dictionary: dict, exclude_from_comparison: list = []) -> bool:
     schema_d = {k: v for k, v in dictionary.items() if k in schema.keys()}
@@ -101,14 +117,15 @@ def check_schema(schema: dict, dictionary: dict, exclude_from_comparison: list =
                 except:
                     return False
     else:
-        return False    
+        return False
 
     return True
 
+
 class Room:
-    def __init__(self, debug_mode, 
-                 cb_OnChangeState, 
-                 cb_OnIncomingMessage, 
+    def __init__(self, debug_mode,
+                 cb_OnChangeState,
+                 cb_OnIncomingMessage,
                  cb_OnIncomingCommand,
                  cb_OnEvent,
                  cb_OnMethod):
@@ -123,24 +140,24 @@ class Room:
         self.url = ''
         self.tokenForHttpServer = ''
         self.HttpPort = None
-        
+
         self.systemInfo = {}
         self.settings = {}
         self.monitorsInfo = {}
 
         self.connection = None
-        
+
         self.callback_OnChangeState = cb_OnChangeState
         self.callback_OnIncomingMessage = cb_OnIncomingMessage
         self.callback_OnIncomingCommand = cb_OnIncomingCommand
         self.callback_OnEvent = cb_OnEvent
         self.callback_OnMethod = cb_OnMethod
-        
+
     def __del__(self):
         pass
 
     def dbg_print(self, value: str) -> None:
-        logging.debug(value)
+        logger.debug(value)
         if self.debug_mode:
             print(value)
 
@@ -160,11 +177,12 @@ class Room:
         elif await self.processErrorInResponse(response):
             self.dbg_print('Processed in processErrorInResponse')
         elif await self.processEvents(response):
-            self.dbg_print('Processed in processEvents') 
+            self.dbg_print('Processed in processEvents')
         elif await self.processMethods(response):
-            self.dbg_print('Processed in processMethods') 
+            self.dbg_print('Processed in processMethods')
         else:
             self.dbg_print(f'Warning! No one handled: {msg}')
+
     # ===================================================
 
     # EVENT: appStateChanged
@@ -181,12 +199,12 @@ class Room:
         if check_schema({"event": "appStateChanged", "appState": None}, response):
             result = True
             self.dbg_print(f'*** appStateChanged = {response["appState"]}')
-            new_state = response["appState"] 
+            new_state = response["appState"]
             self.app_state = new_state
             # queue
             add_state_to_queue(self.app_state)
-            
-            if self.app_state == 3: # Normal
+
+            if self.app_state == 3:  # Normal
                 pass
             else:
                 pass
@@ -222,7 +240,7 @@ class Room:
                 self.dbg_print('Get auth error')
                 self.dbg_print(response)
                 self.disconnect()
-                self.caughtConnectionError() # any connection errors
+                self.caughtConnectionError()  # any connection errors
 
         return result
 
@@ -266,7 +284,7 @@ class Room:
             result = True
             s = f'Room error: {response["error"]}'
             self.dbg_print(s)
-            logging.error(s)                           
+            logger.error(s)
 
         return result
 
@@ -281,7 +299,7 @@ class Room:
             # Callback func
             if self.callback_OnEvent:
                 callback_func = asyncio.create_task(self.callback_OnEvent(response["event"], response))
-                await callback_func                                       
+                await callback_func
 
         return result
 
@@ -292,7 +310,7 @@ class Room:
         if result:
             method_name = response["method"]
             self.dbg_print(f'Method: {method_name}')
-            #self.dbg_print(f'  Response: {response}')
+            # self.dbg_print(f'  Response: {response}')
 
             # ================================================
             # for self
@@ -308,9 +326,10 @@ class Room:
             # Callback func
             if self.callback_OnMethod:
                 callback_func = asyncio.create_task(self.callback_OnMethod(method_name, response))
-                await callback_func                                       
+                await callback_func
 
         return result
+
     # ===================================================
     def on_message(self, message):
         asyncio.run(self.processMessage(message))
@@ -318,8 +337,8 @@ class Room:
     def on_error(self, error):
         s = f'WebSocket connection error: {error}'
         print(s)
-        logging.error(s)
-        #raise ConnectToRoomException(s)
+        logger.error(s)
+        # raise ConnectToRoomException(s)
 
     def on_close(self):
         self.dbg_print("Close socket connection")
@@ -327,9 +346,9 @@ class Room:
         self.tokenForHttpServer = ''
 
     def on_open(self):
-        self.dbg_print('%s connection "%s" successfully' % (PRODUCT_NAME, self.url)) 
+        self.dbg_print('%s connection "%s" successfully' % (PRODUCT_NAME, self.url))
         self.setConnectionStatus(ConnectionStatus.connected)
-        #self.setUsedApiVersion_1()
+        # self.setUsedApiVersion_1()
         time.sleep(0.1)
         # Auth
         self.auth(self.pin)
@@ -340,6 +359,7 @@ class Room:
             self.connection.close()
 
         thread.start_new_thread(run, ())
+
     # ===================================================
 
     def send_command_to_room(self, command: dict):
@@ -357,14 +377,14 @@ class Room:
         # Connect
         self.url = f'ws://{self.ip}:{self.wsPort}'
         self.connection = websocket.WebSocketApp(self.url,
-                                  on_message = self.on_message,
-                                  on_error = self.on_error,
-                                  on_close = self.on_close)
+                                                 on_message=self.on_message,
+                                                 on_error=self.on_error,
+                                                 on_close=self.on_close)
         self.connection.on_open = self.on_open
         self.setConnectionStatus(ConnectionStatus.started)
         # Thread
         thread.start_new_thread(self.run, ())
-        
+
     def disconnect(self):
         self.dbg_print('Connection is closing...')
         self.setConnectionStatus(ConnectionStatus.close)
@@ -374,20 +394,21 @@ class Room:
 
     def getTokenForHttpServer(self):
         return self.tokenForHttpServer
-    
+
     def isReady(self):
         return self.connection_status == ConnectionStatus.normal
-    
+
     def isConnected(self) -> bool:
         return self.connection_status in [ConnectionStatus.connected, ConnectionStatus.normal]
-    
+
     def caughtConnectionError(self):
-        raise ConnectToRoomException('{} is not running or wrong IP address, PIN, Port. IP="{}"'.format(PRODUCT_NAME, self.ip))
-    
+        raise ConnectToRoomException(
+            '{} is not running or wrong IP address, PIN, Port. IP="{}"'.format(PRODUCT_NAME, self.ip))
+
     def setConnectionStatus(self, status):
         self.connection_status = status
         self.dbg_print("setStatus: " + self.connection_status.name)
-        
+
     def save_picture_selfview_to_file(self, fileName: str) -> str:
         if self.isReady() and self.tokenForHttpServer:
             url = URL_SELF_PICTURE.format(self.ip, self.httpPort, self.tokenForHttpServer)
@@ -396,11 +417,11 @@ class Room:
                 for chunk in req.iter_content(10240):
                     out_stream.write(chunk)
         else:
-            #raise RoomException('{} is not ready to take a picture'.format(PRODUCT_NAME, self.ip))
+            # raise RoomException('{} is not ready to take a picture'.format(PRODUCT_NAME, self.ip))
             return None
-        
+
         return fileName
-    
+
     ''' getAppState
        * none       = 0 (No connection to the server and the terminal does nothing),
        * connect    = 1 (the terminal tries to connect to the server),
@@ -409,9 +430,11 @@ class Room:
        * wait       = 4 (the terminal is pending: either it calls somebody or somebody calls it),
        * conference = 5 (the terminal is in the conference),
        * close      = 6 (the terminal is finishing the conference)
-    '''    
+    '''
+
     def getAppState(self) -> int:
         return self.app_state
+
     # =============================================================
     def setUsedApiVersion_1(self):
         # make a command
@@ -421,39 +444,40 @@ class Room:
 
     def auth(self, pin: str):
         if pin:
-            command = {"method" : "auth","type" : "secured", "credentials" : pin}
+            command = {"method": "auth", "type": "secured", "credentials": pin}
         else:
-            command = {"method" : "auth","type" : "unsecured"}
+            command = {"method": "auth", "type": "unsecured"}
         # send
         self.send_command_to_room(command)
 
     def call(self, peerId: str) -> None:
         # make a command        
-        command = {"method": "call", "peerId": peerId}    
+        command = {"method": "call", "peerId": peerId}
+        print(self.connection_status)
         # send    
         self.send_command_to_room(command)
 
     def accept(self):
         # make a command        
-        command = {"method" : "accept"}    
+        command = {"method": "accept"}
         # send    
         self.send_command_to_room(command)
-        
+
     def requestSettings(self):
         # make a command        
-        command = {"method" : "getSettings"}    
+        command = {"method": "getSettings"}
         # send    
         self.send_command_to_room(command)
 
     def requestSystemInfo(self):
         # make a command        
-        command = {"method" : "getSystemInfo"}    
+        command = {"method": "getSystemInfo"}
         # send    
         self.send_command_to_room(command)
 
     def logout(self):
         # make a command        
-        command = {"method" : "logout"}    
+        command = {"method": "logout"}
         # send    
         self.send_command_to_room(command)
 
@@ -462,16 +486,16 @@ class Room:
         command = {"method": "moveVideoSlotToMonitor", "callId": callId, "monitorIndex": monitorIndex}
         # send    
         self.send_command_to_room(command)
-        
+
     def sendCommand(self, peerId: str, command: str):
         # make a command
         command = {"method": "sendCommand", "peerId": peerId, "command": command}
         # send    
         self.send_command_to_room(command)
-        
+
     def hangUp(self, forAll: bool = False):
         # make a command
-        command = {"method" : "hangUp", "forAll" : forAll}
+        command = {"method": "hangUp", "forAll": forAll}
         # send    
         self.send_command_to_room(command)
 
@@ -479,7 +503,7 @@ class Room:
         # Check on file empty
         if not filePath:
             print("Empty path")
-            command = {"method" : "setBackground"}
+            command = {"method": "setBackground"}
             self.send_command_to_room(command)
             return
 
@@ -489,15 +513,15 @@ class Room:
             print("File not accessible")
             return
 
-        #make request 
+        # make request
         url = URL_UPLOAD_FILE.format(self.ip, self.HttpPort, self.tokenForHttpServer)
-        response = requests.post(url, files=files) 
-        if response.status_code == 200 :
+        response = requests.post(url, files=files)
+        if response.status_code == 200:
             data = response.headers
-            command = {"method" : "setBackground", "fileId" : int(data["FileId"])}  
+            command = {"method": "setBackground", "fileId": int(data["FileId"])}
             self.send_command_to_room(command)
         else:
-            self.dbg_print(response.text)   
+            self.dbg_print(response.text)
         return
 
     ''' {
@@ -511,50 +535,52 @@ class Room:
         "user3@some.server"
     ]
     }'''
-    def createConferenceSymmetric(self, title: str, autoAccept: bool, inviteList: []):           
+
+    def createConferenceSymmetric(self, title: str, autoAccept: bool, inviteList: []):
         # make a command
-        command = {"method" : "createConference", "title" : title, "confType" : "symmetric", 
+        command = {"method": "createConference", "title": title, "confType": "symmetric",
                    "autoAccept": autoAccept, "inviteList": inviteList}
         # send    
         self.send_command_to_room(command)
 
     def connectToServer(self, server: str, port: int = 4307):
         # make a command
-        command = {"method" : "connectToServer", "server" : server, "port": port}
+        command = {"method": "connectToServer", "server": server, "port": port}
         # send    
         self.send_command_to_room(command)
-        
+
     def requestAppState(self):
         # make a command
         command = {"method": "getAppState"}
         # send    
         self.send_command_to_room(command)
-        
+
     def requestMonitorsInfo(self):
         # make a command
         command = {"method": "getMonitorsInfo"}
         # send    
         self.send_command_to_room(command)
-        
+
     def setSettings(self, settings: dict):
         # make a command
-        command = {"method" : "setSettings", "settings": settings}
-        # send    
-        self.send_command_to_room(command)
-        
-    def shutdownRoom(self, forAll: bool):
-        # make a command
-        command = {"method" : "shutdown", "forAll" : forAll}
+        command = {"method": "setSettings", "settings": settings}
         # send    
         self.send_command_to_room(command)
 
+    def shutdownRoom(self, forAll: bool):
+        # make a command
+        command = {"method": "shutdown", "forAll": forAll}
+        # send    
+        self.send_command_to_room(command)
+
+
 # =====================================================================
-def make_connection(pin=None, room_ip = '127.0.0.1', port = 80, debug_mode = False,
-                    cb_OnChangeState = None, 
-                    cb_OnIncomingMessage = None,
-                    cb_OnIncomingCommand = None,
-                    cb_OnEvent = None,
-                    cb_OnMethod = None):
+def make_connection(pin=None, room_ip='127.0.0.1', port=80, debug_mode=False,
+                    cb_OnChangeState=None,
+                    cb_OnIncomingMessage=None,
+                    cb_OnIncomingCommand=None,
+                    cb_OnEvent=None,
+                    cb_OnMethod=None):
     '''
     Connect to TrueConf Room. The TrueConf Room application must be launched
     '''
@@ -564,11 +590,11 @@ def make_connection(pin=None, room_ip = '127.0.0.1', port = 80, debug_mode = Fal
 
     # Wait for ~5 sec...
     WAIT_FOR_SEC, SLEEP = 5, 0.1
-    for i in range(round(WAIT_FOR_SEC/SLEEP)): 
+    for i in range(round(WAIT_FOR_SEC / SLEEP)):
         if room.isConnected():
             break
         time.sleep(0.1)
-        if i >= round(WAIT_FOR_SEC/SLEEP) - 1:
+        if i >= round(WAIT_FOR_SEC / SLEEP) - 1:
             room.caughtConnectionError()
 
     return room
