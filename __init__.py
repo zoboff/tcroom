@@ -138,6 +138,7 @@ class Room:
         self.monitorsInfo = {}
 
         self.connection = None
+        self.currentConference = None
 
         self.callback_OnChangeState = cb_OnChangeState
         self.callback_OnIncomingMessage = cb_OnIncomingMessage
@@ -194,8 +195,12 @@ class Room:
             self.app_state = new_state
             # queue
             add_state_to_queue(self.app_state)
+            # update a conference's info
+            self.updateConferenceInfo()
 
             if self.app_state == 3:  # Normal
+                pass
+            elif self.app_state == 5:  # In conference
                 pass
             else:
                 pass
@@ -208,6 +213,8 @@ class Room:
             result = True
             new_state = response["appState"]
             self.app_state = new_state
+            # update a conference's info
+            self.updateConferenceInfo() 
 
         return result
 
@@ -312,6 +319,9 @@ class Room:
                 self.settings = response
             elif "getMonitorsInfo".lower() == method_name.lower():
                 self.monitorsInfo = response
+            elif "getConferences".lower() == method_name.lower():
+                self.currentConference = response
+                print(self.currentConference)
             # ================================================
 
             # Callback func
@@ -503,6 +513,14 @@ class Room:
     ]
     }'''
 
+    def updateConferenceInfo(self):
+        # clear current conference info
+        self.currentConference = None
+        # update info
+        if self.app_state == 5:
+            self.requestGetConferences()
+        
+        
     def createConferenceSymmetric(self, title: str, autoAccept: bool, inviteList: []):
         command = {"method": "createConference", "title": title, "confType": "symmetric",
                    "autoAccept": autoAccept, "inviteList": inviteList}
@@ -526,6 +544,10 @@ class Room:
 
     def shutdownRoom(self, forAll: bool):
         command = {"method": "shutdown", "forAll": forAll}
+        self.send_command_to_room(command)
+        
+    def requestGetConferences(self):
+        command = {"method": "getConferences"}
         self.send_command_to_room(command)
 
 
