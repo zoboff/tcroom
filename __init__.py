@@ -121,7 +121,6 @@ class Room:
                  cb_OnIncomingCommand,
                  cb_OnEvent,
                  cb_OnMethod):
-
         self.debug_mode = debug_mode
 
         self.connection_status = ConnectionStatus.unknown
@@ -548,6 +547,10 @@ class Room:
         
     def requestGetConferences(self):
         command = {"method": "getConferences"}
+        self.send_command_to_room(command)
+        
+    def changeVideoMatrix(self, matrixType: int, participants: list):
+        command = {"method": "changeVideoMatrix", "matrixType": matrixType, "participants": participants}
         self.send_command_to_room(command)
 
 
