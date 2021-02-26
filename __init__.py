@@ -550,6 +550,32 @@ class Room:
         self.send_command_to_room(command)
         
     def changeVideoMatrix(self, matrixType: int, participants: list):
+        """
+        Specify video matrix and the ratio of video windows for available slots. It is used only in the conference.
+
+        Parameters
+        ----------
+        matrixType: int 
+            Matrix allocation type. There are the following matrix types:
+
+            - even = 0, all the windows are of the same size (for multipoint conference);
+            - big = 1, one window is big while others are small (for multipoint conference);
+            - one = 2,  display only the video of the conference participant who is the first in the participants list (for any type of the conference); 
+            - oneSelf = 3, big video of the conference participant and a small selfview in the corner (for video call).
+        participants: list
+            the list of video slots and conference participants
+
+        Example
+        -------
+        ```
+        import tcroom
+        
+        participants = ["user1@some.server", "user2@some.server", "user3@some.server"]
+        room = tcroom.make_connection(pin = "123")
+        room.changeVideoMatrix(2, participants)
+        ```
+        """
+
         command = {"method": "changeVideoMatrix", "matrixType": matrixType, "participants": participants}
         self.send_command_to_room(command)
 
