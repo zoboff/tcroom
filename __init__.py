@@ -361,7 +361,8 @@ class Room:
     # ===================================================
 
     def send_command_to_room(self, command: dict):
-        logger.info(f'Sending command to room: {command}')
+        #logger.info(f'Sending command to room: {command}')
+        self.dbg_print(f'Sending command to room: {command}')
         self.connection.send(json.dumps(command))
 
     def connect(self, ip: str, port: int, pin: str = None) -> bool:
