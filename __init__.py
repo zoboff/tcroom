@@ -27,6 +27,9 @@ DEFAULT_WEBSOCKET_PORT = 8765
 DEFAULT_HTTP_PORT = 8766
 DEFAULT_ROOM_PORT = 80
 
+SELF_VIEW_SLOT = "#self:0" #"VideoCaptureSlot"
+SLIDE_SHOW_SLOT = "SlideShowSlot"
+
 logger = logging.getLogger('tcroom')
 logger.setLevel(logging.DEBUG)
 
@@ -458,6 +461,10 @@ class Room:
     def requestSystemInfo(self):
         command = {"method": "getSystemInfo"}
         self.send_command_to_room(command)
+        
+    def requestConferenceParticipants(self):
+        command = {"method": "getConferenceParticipants"}
+        self.send_command_to_room(command)
 
     def logout(self):
         command = {"method": "logout"}
@@ -575,9 +582,26 @@ class Room:
         room.changeVideoMatrix(2, participants)
         ```
         """
+        
+        # Replace logged ID to SELF_VIEW_SLOT - "VideoCaptureSlot"
+        my_id = self.getMyId()
+        if my_id:
+            for i, user in enumerate(participants):
+                if my_id == user:
+                   participants[i] = SELF_VIEW_SLOT
 
         command = {"method": "changeVideoMatrix", "matrixType": matrixType, "participants": participants}
         self.send_command_to_room(command)
+        
+    def getMyId(self):
+        """
+        Get the current logged TrueConf ID
+        """
+
+        try:
+            return self.systemInfo["authInfo"]["peerId"]
+        except:
+            return None
 
 
 # =====================================================================
