@@ -117,6 +117,20 @@ def check_schema(schema: dict, dictionary: dict, exclude_from_comparison: list =
     return True
 
 
+def appStateToText(state: int):
+    APP_STATES = {
+            0: "none",       # No connection to the server and TrueConf Room does nothing
+            1: "connect",    # TrueConf Room tries to connect to the server
+            2: "login",      # you need to login
+            3: "normal",     # TrueConf Room is connected to the server and logged in
+            4: "wait",       # TrueConf Room is pending: either it calls somebody or somebody calls it
+            5: "conference", # TrueConf Room is in the conference
+            6: "close"       # TrueConf Room is finishing the conference
+        }
+
+    return APP_STATES.get(state, "none")
+
+
 class Room:
     def __init__(self, debug_mode,
                  cb_OnChangeState,
@@ -323,7 +337,6 @@ class Room:
                 self.monitorsInfo = response
             elif "getConferences".lower() == method_name.lower():
                 self.currentConference = response
-                print(self.currentConference)
             # ================================================
 
             # Callback func
@@ -603,6 +616,46 @@ class Room:
             return self.systemInfo["authInfo"]["peerId"]
         except:
             return None
+        
+    def setPanPos(self, pos: int):
+        command = {"method": "setPanPos", "pos": pos}
+        self.send_command_to_room(command)
+
+    def setTiltPos(self, pos: int):
+        command = {"method": "setTiltPos", "pos": pos}
+        self.send_command_to_room(command)
+        
+    def setZoomPos(self, pos: int):
+        command = {"method": "setZoomPos", "pos": pos}
+        self.send_command_to_room(command)
+        
+    def ptzStop(self):
+        command = {"method": "ptzStop"}
+        self.send_command_to_room(command)
+     
+    def ptzRight(self):
+        command = {"method": "ptzRight"}
+        self.send_command_to_room(command)
+    
+    def ptzLeft(self):
+        command = {"method": "ptzLeft"}
+        self.send_command_to_room(command)
+     
+    def ptzUp(self):
+        command = {"method": "ptzUp"}
+        self.send_command_to_room(command)
+      
+    def ptzDown(self):
+        command = {"method": "ptzDown"}
+        self.send_command_to_room(command)
+     
+    def ptzZoomInc(self):
+        command = {"method": "ptzZoomInc"}
+        self.send_command_to_room(command)
+    
+    def ptzZoomDec(self):
+        command = {"method": "ptzZoomDec"}
+        self.send_command_to_room(command)  
 
 
 # =====================================================================
