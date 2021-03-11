@@ -602,7 +602,7 @@ class Room:
         if my_id:
             for i, user in enumerate(participants):
                 if my_id == user:
-                   participants[i] = SELF_VIEW_SLOT
+                    participants[i] = SELF_VIEW_SLOT
 
         command = {"method": "changeVideoMatrix", "matrixType": matrixType, "participants": participants}
         self.send_command_to_room(command)
