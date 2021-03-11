@@ -655,7 +655,13 @@ class Room:
     
     def ptzZoomDec(self):
         command = {"method": "ptzZoomDec"}
-        self.send_command_to_room(command)  
+        self.send_command_to_room(command)
+        
+    def getURL_SelfVideo(self):
+        if self.isReady() and self.tokenForHttpServer:
+            return URL_SELF_PICTURE.format(self.ip, self.httpPort, self.tokenForHttpServer)
+        else:
+            return None
 
 
 # =====================================================================
@@ -677,6 +683,7 @@ def make_connection(pin=None, room_ip='127.0.0.1', port=80, debug_mode=False,
             break
         time.sleep(0.1)
         if i >= round(WAIT_FOR_SEC / SLEEP) - 1:
+            logger.error('Connection timed out')
             room.caughtConnectionError()
 
     return room
