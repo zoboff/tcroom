@@ -3,6 +3,7 @@ import websocket
 try:
     import thread
 except ImportError:
+    print("_thread")
     import _thread as thread
 
 import time
@@ -22,7 +23,7 @@ from enum import Enum
 PRODUCT_NAME = 'TrueConf Room'
 URL_SELF_PICTURE = "http://{}:{}/frames/?peerId=%23self%3A0&token={}"
 URL_UPLOAD_FILE = "http://{}:{}/files/?token={}"
-CONFIG_JSON_URL = "http://localhost:{}/public/default/config.json"
+CONFIG_JSON_URL = "http://{}:{}/public/default/config.json"
 DEFAULT_WEBSOCKET_PORT = 8765
 DEFAULT_HTTP_PORT = 8766
 DEFAULT_ROOM_PORT = 80
@@ -47,10 +48,10 @@ logger.addHandler(rotation_handler)
 logger.addHandler(console_handler)
 
 
-def getHttpPort(room_port: int) -> int:
+def getHttpPort(ip: str, room_port: int) -> int:
     """Get the current HTTP TrueConf Room port. The TrueConf Room application must be launched"""
     try:
-        json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
+        json_file = requests.get(url=CONFIG_JSON_URL.format(ip, room_port))
         data = json_file.json()
         port = data["config"]["http"]["port"]
         logger.info(f'Room HTTP port: {port}')
@@ -62,10 +63,10 @@ def getHttpPort(room_port: int) -> int:
     return port
 
 
-def getWebsocketPort(room_port: int) -> int:
+def getWebsocketPort(ip: str, room_port: int) -> int:
     """Get the current websocket TrueConf Room port. The TrueConf Room application must be launched"""
     try:
-        json_file = requests.get(url=CONFIG_JSON_URL.format(room_port))
+        json_file = requests.get(url=CONFIG_JSON_URL.format(ip, room_port))
         data = json_file.json()
         port = data["config"]["websocket"]["port"]
         logger.info(f'Room WebSocket port: {port}')
@@ -384,8 +385,8 @@ class Room:
         self.in_stopping = False
         self.tokenForHttpServer = None
 
-        self.wsPort = getWebsocketPort(port)
-        self.httpPort = getHttpPort(port)
+        self.wsPort = getWebsocketPort(ip, port)
+        self.httpPort = getHttpPort(ip, port)
 
         self.url = f'ws://{self.ip}:{self.wsPort}'
         self.connection = websocket.WebSocketApp(self.url,
