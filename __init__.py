@@ -3,7 +3,6 @@ import websocket
 try:
     import thread
 except ImportError:
-    print("_thread")
     import _thread as thread
 
 import time
