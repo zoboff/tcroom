@@ -390,10 +390,10 @@ class Room:
 
         self.url = f'ws://{self.ip}:{self.wsPort}'
         self.connection = websocket.WebSocketApp(self.url,
+                                                 on_open=self.on_open,
                                                  on_message=self.on_message,
                                                  on_error=self.on_error,
                                                  on_close=self.on_close)
-        self.connection.on_open = self.on_open
         self.setConnectionStatus(ConnectionStatus.started)
         # Thread
         thread.start_new_thread(self.run, ())
