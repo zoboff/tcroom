@@ -363,7 +363,7 @@ class Room:
             while self.isConnected():
                 time.sleep(0.1)
             self.connection.close()
-
+            
         #thread.start_new_thread(run, ())
 
     # ===================================================
@@ -390,8 +390,9 @@ class Room:
                                                  on_close=self.on_close)
         self.setConnectionStatus(ConnectionStatus.started)
         # Thread
-        x = threading.Thread(target=self.run, args=())
-        x.start()
+        self.x = threading.Thread(target=self.run, args=())
+        self.x.start()
+        print("*** threading started")
         #thread.start_new_thread(self.run, ())
 
     def disconnect(self):
