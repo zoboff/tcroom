@@ -382,6 +382,7 @@ class Room:
         self.wsPort = getWebsocketPort(ip, port)
         self.httpPort = getHttpPort(ip, port)
 
+        websocket.enableTrace(True)
         self.url = f'ws://{self.ip}:{self.wsPort}'
         self.connection = websocket.WebSocketApp(self.url,
                                                  on_open=self.on_open,
