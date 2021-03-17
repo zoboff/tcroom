@@ -354,6 +354,7 @@ class Room:
         self.tokenForHttpServer = ''
 
     def on_open(self):
+        print(str(self))
         self.dbg_print(f'{PRODUCT_NAME} connection to {self.url} was open successfully')
         self.setConnectionStatus(ConnectionStatus.connected)
         time.sleep(0.1)
@@ -382,13 +383,15 @@ class Room:
         self.wsPort = getWebsocketPort(ip, port)
         self.httpPort = getHttpPort(ip, port)
 
-        websocket.enableTrace(True)
+        if self.debug_mode:
+            websocket.enableTrace(True)
         self.url = f'ws://{self.ip}:{self.wsPort}'
         self.connection = websocket.WebSocketApp(self.url,
                                                  on_open=self.on_open,
                                                  on_message=self.on_message,
                                                  on_error=self.on_error,
                                                  on_close=self.on_close)
+        self.connection.on_open=self.on_open
         self.setConnectionStatus(ConnectionStatus.started)
         # Thread
         self.x = threading.Thread(target=self.run, args=())
