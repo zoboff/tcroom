@@ -1,10 +1,5 @@
 import websocket
-
-try:
-    import thread
-except ImportError:
-    import _thread as thread
-
+import threading as thread
 import time
 import json
 import logging
@@ -369,7 +364,7 @@ class Room:
                 time.sleep(0.1)
             self.connection.close()
 
-        thread.start_new_thread(run, ())
+        #thread.start_new_thread(run, ())
 
     # ===================================================
 
@@ -395,7 +390,9 @@ class Room:
                                                  on_close=self.on_close)
         self.setConnectionStatus(ConnectionStatus.started)
         # Thread
-        thread.start_new_thread(self.run, ())
+        x = threading.Thread(target=self.run, args=())
+        x.start()
+        #thread.start_new_thread(self.run, ())
 
     def disconnect(self):
         logger.info('Connection is closing...')
