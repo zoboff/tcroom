@@ -1,5 +1,42 @@
 import websocket
-import threading
+try:
+    import thread
+except ImportError:
+    import _thread as thread
+import time
+import json
+import logging
+import os
+import requests
+import asyncio
+
+from logging.handlers import RotatingFileHandler
+from logging import Formatter
+from enum import Enum
+
+# PORTS: c:\ProgramData\TrueConf\Room\web\default\config.json
+# CONFIG_JSON_FILE = "c:\ProgramData\TrueConf\Room\web\default\config.json"
+
+PRODUCT_NAME = 'TrueConf Room'
+URL_SELF_PICTURE = "http://{}:{}/frames/?peerId=%23self%3A0&token={}"
+URL_UPLOAD_FILE = "http://{}:{}/files/?token={}"
+CONFIG_JSON_URL = "http://{}:{}/public/default/config.json"
+DEFAULT_WEBSOCKET_PORT = 8765
+DEFAULT_HTTP_PORT = 8766
+DEFAULT_ROOM_PORT = 80
+
+SELF_VIEW_SLOT = "#self:0" #"VideoCaptureSlot"
+SLIDE_SHOW_SLOT = "SlideShowSlot"
+
+logger = logging.getLogger('tcroom')
+logger.setLevel(logging.DEBUG)
+
+rotation_handler = logging.handlers.RotatingFileHandler(
+import websocket
+try:
+    import thread
+except ImportError:
+    import _thread as thread
 import time
 import json
 import logging
@@ -342,18 +379,18 @@ class Room:
         return result
 
     # ===================================================
-    def on_message(self, message):
+    def on_message(self, ws, message):
         asyncio.run(self.processMessage(message))
 
-    def on_error(self, error):
+    def on_error(self, ws, error):
         logger.error(f'WebSocket connection error: {error}')
 
-    def on_close(self):
+    def on_close(self, ws):
         self.dbg_print("Close socket connection")
         self.setConnectionStatus(ConnectionStatus.close)
         self.tokenForHttpServer = ''
 
-    def on_open(self):
+    def on_open(self, ws):
         print(str(self))
         self.dbg_print(f'{PRODUCT_NAME} connection to {self.url} was open successfully')
         self.setConnectionStatus(ConnectionStatus.connected)
@@ -365,7 +402,7 @@ class Room:
                 time.sleep(0.1)
             self.connection.close()
             
-        #thread.start_new_thread(run, ())
+        thread.start_new_thread(run, ())
 
     # ===================================================
 
@@ -394,10 +431,10 @@ class Room:
         self.connection.on_open=self.on_open
         self.setConnectionStatus(ConnectionStatus.started)
         # Thread
-        self.x = threading.Thread(target=self.run, args=())
-        self.x.start()
-        print("*** threading started")
-        #thread.start_new_thread(self.run, ())
+        #self.x = threading.Thread(target=self.run, args=())
+        #self.x.start()
+        #print("*** threading started")
+        thread.start_new_thread(self.run, ())
 
     def disconnect(self):
         logger.info('Connection is closing...')
