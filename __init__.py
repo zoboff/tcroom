@@ -1,10 +1,12 @@
+# coding=utf8
+'''''
+@author: zobov
+'''
 import websocket
-
 try:
     import thread
 except ImportError:
     import _thread as thread
-
 import time
 import json
 import logging
@@ -347,18 +349,18 @@ class Room:
         return result
 
     # ===================================================
-    def on_message(self, message):
+    def on_message(self, ws, message):
         asyncio.run(self.processMessage(message))
 
-    def on_error(self, error):
+    def on_error(self, ws, error):
         logger.error(f'WebSocket connection error: {error}')
 
-    def on_close(self):
+    def on_close(self, ws):
         self.dbg_print("Close socket connection")
         self.setConnectionStatus(ConnectionStatus.close)
         self.tokenForHttpServer = ''
 
-    def on_open(self):
+    def on_open(self, ws):
         self.dbg_print(f'{PRODUCT_NAME} connection to {self.url} was open successfully')
         self.setConnectionStatus(ConnectionStatus.connected)
         time.sleep(0.1)
@@ -387,15 +389,20 @@ class Room:
         self.wsPort = getWebsocketPort(ip, port)
         self.httpPort = getHttpPort(ip, port)
         
-        websocket.enableTrace(self.debug_mode)
+        if self.debug_mode:
+            websocket.enableTrace(True)
         self.url = f'ws://{self.ip}:{self.wsPort}'
         self.connection = websocket.WebSocketApp(self.url,
+                                                 on_open=self.on_open,
                                                  on_message=self.on_message,
                                                  on_error=self.on_error,
                                                  on_close=self.on_close)
         self.connection.on_open = self.on_open
         self.setConnectionStatus(ConnectionStatus.started)
         # Thread
+        #self.x = threading.Thread(target=self.run, args=())
+        #self.x.start()
+        #print("*** threading started")
         thread.start_new_thread(self.run, ())
 
     def disconnect(self):
