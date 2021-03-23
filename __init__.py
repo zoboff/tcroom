@@ -389,8 +389,7 @@ class Room:
         self.wsPort = getWebsocketPort(ip, port)
         self.httpPort = getHttpPort(ip, port)
         
-        if self.debug_mode:
-            websocket.enableTrace(True)
+        websocket.enableTrace(self.debug_mode)
         self.url = f'ws://{self.ip}:{self.wsPort}'
         self.connection = websocket.WebSocketApp(self.url,
                                                  on_open=self.on_open,
@@ -399,10 +398,6 @@ class Room:
                                                  on_close=self.on_close)
         self.connection.on_open = self.on_open
         self.setConnectionStatus(ConnectionStatus.started)
-        # Thread
-        #self.x = threading.Thread(target=self.run, args=())
-        #self.x.start()
-        #print("*** threading started")
         thread.start_new_thread(self.run, ())
 
     def disconnect(self):
