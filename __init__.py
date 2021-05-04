@@ -349,18 +349,18 @@ class Room:
         return result
 
     # ===================================================
-    def on_message(self, ws, message):
+    def on_message(self, message):
         asyncio.run(self.processMessage(message))
 
-    def on_error(self, ws, error):
+    def on_error(self, error):
         logger.error(f'WebSocket connection error: {error}')
 
-    def on_close(self, ws):
+    def on_close(self):
         self.dbg_print("Close socket connection")
         self.setConnectionStatus(ConnectionStatus.close)
         self.tokenForHttpServer = ''
 
-    def on_open(self, ws):
+    def on_open(self):
         self.dbg_print(f'{PRODUCT_NAME} connection to {self.url} was open successfully')
         self.setConnectionStatus(ConnectionStatus.connected)
         time.sleep(0.1)
