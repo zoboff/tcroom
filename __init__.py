@@ -234,6 +234,11 @@ class Room:
             # update a conference's info
             self.updateConferenceInfo() 
 
+            # Callback func
+            if self.callback_OnChangeState:
+                callback_func = asyncio.create_task(self.callback_OnChangeState(self.app_state))
+                await callback_func
+
         return result
 
     # {"requestId":"","method":"auth","previleges":2,"token":"***","tokenForHttpServer":"***","result":true}
