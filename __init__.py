@@ -386,6 +386,7 @@ class Room:
         self.connection.send(json.dumps(command))
 
     def connect(self, ip: str, port: int, pin: str = None) -> bool:
+        """Connect to the Room application"""
         self.ip = ip
         self.pin = pin
         self.in_stopping = False
@@ -406,6 +407,7 @@ class Room:
         thread.start_new_thread(self.run, ())
 
     def disconnect(self):
+        """Disconnect from the Room application"""
         logger.info('Connection is closing...')
         self.setConnectionStatus(ConnectionStatus.close)
 
@@ -468,31 +470,58 @@ class Room:
         self.send_command_to_room(command)
 
     def call(self, peerId: str) -> None:
+        """Make p2p call
+        
+        Parameters
+        ----------
+        peerId : str
+            A unique user ID (TrueConfID)
+        """
         command = {"method": "call", "peerId": peerId}
         logger.info(f'Connection status: {self.connection_status.name}')
         self.send_command_to_room(command)
 
     def accept(self):
+        """Accept the call. The command is run immediately and the result of execution is received at once.
+        
+        Response example
+        ----------
+        {"event" : "commandExecution", "accept" : "ok"}
+
+        """
         command = {"method": "accept"}
         self.send_command_to_room(command)
 
     def requestSettings(self):
+        """Request the settings list"""
         command = {"method": "getSettings"}
         self.send_command_to_room(command)
 
     def requestSystemInfo(self):
+        """Request the system information"""
         command = {"method": "getSystemInfo"}
         self.send_command_to_room(command)
         
     def requestConferenceParticipants(self):
+        """Request current conference participants list"""
         command = {"method": "getConferenceParticipants"}
         self.send_command_to_room(command)
 
     def logout(self):
+        """Log out the current user"""
         command = {"method": "logout"}
         self.send_command_to_room(command)
 
     def moveVideoSlotToMonitor(self, callId: str, monitorIndex: int):
+        """Move the user's video slot to specific monitor.
+        
+        Parameters
+        ----------
+        callId : str
+            TrueConf ID
+        monitorIndex : int
+            Monitor index
+        """
         command = {"method": "moveVideoSlotToMonitor", "callId": callId, "monitorIndex": monitorIndex}
         self.send_command_to_room(command)
 
@@ -501,6 +530,20 @@ class Room:
         self.send_command_to_room(command)
 
     def hangUp(self, forAll: bool = False):
+        """End a call or a conference. The command is used when the conference has already been created. 
+        hangUp() format is used during a video call. During group conferences both formats are used. 
+        By using hangUp(False) format, you leave the conference, but other participants remain in the conference. 
+        By using hangUp(True) the conference ends for all the participants. 
+        hangUp(True) is used only if you are the conference owner, otherwise a failure occurs. 
+        Positive response ("ok") means the command has been accepted for execution but has not been run executed yet. 
+        Execution result will be received separately via notification.
+        
+        Parameters
+        ----------
+            forAll: bool
+                True - conference ends for all the participants;                 
+                False - you leave the conference, but other participants remain in the conference.
+        """
         command = {"method": "hangUp", "forAll": forAll}
         self.send_command_to_room(command)
 
@@ -555,26 +598,47 @@ class Room:
         self.send_command_to_room(command)
 
     def connectToServer(self, server: str, port: int = 4307):
+        """Connect to TrueConf Server
+        
+        Parameters
+        ----------
+            server: str
+                Server address. For example, IP address;
+            port: int
+                Port. Default port is 4307.
+        """
         command = {"method": "connectToServer", "server": server, "port": port}
         self.send_command_to_room(command)
 
     def requestAppState(self):
+        """Request an application state"""
         command = {"method": "getAppState"}
         self.send_command_to_room(command)
 
     def requestMonitorsInfo(self):
+        """Request the information about monitors."""
         command = {"method": "getMonitorsInfo"}
         self.send_command_to_room(command)
 
     def setSettings(self, settings: dict):
+        """Set application settings.
+        
+        Parameters
+        ----------
+            settings: dict
+                Settings. 
+                For example, ```{"defaultP2PMatrix": 3}```
+        """
         command = {"method": "setSettings", "settings": settings}
         self.send_command_to_room(command)
 
     def shutdownRoom(self, forAll: bool):
+        """Shutdown application"""
         command = {"method": "shutdown", "forAll": forAll}
         self.send_command_to_room(command)
         
     def requestGetConferences(self):
+        """Request the list of conferences."""
         command = {"method": "getConferences"}
         self.send_command_to_room(command)
         
@@ -615,7 +679,7 @@ class Room:
         command = {"method": "changeVideoMatrix", "matrixType": matrixType, "participants": participants}
         self.send_command_to_room(command)
         
-    def getMyId(self):
+    def getMyId(self) -> str:
         """
         Get the current logged TrueConf ID
         """
