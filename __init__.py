@@ -16,7 +16,7 @@ import asyncio
 
 from logging.handlers import RotatingFileHandler
 from logging import Formatter
-from enum import Enum
+from enum import Enum, IntEnum
 
 # PORTS: c:\ProgramData\TrueConf\Room\web\default\config.json
 # CONFIG_JSON_FILE = "c:\ProgramData\TrueConf\Room\web\default\config.json"
@@ -79,7 +79,7 @@ def getWebsocketPort(ip: str, room_port: int) -> int:
     return port
 
 
-class ConnectionStatus(Enum):
+class ConnectionStatus(IntEnum):
     unknown = 0
     started = 1
     connected = 2
@@ -734,6 +734,14 @@ class Room:
             return URL_SELF_PICTURE.format(self.ip, self.httpPort, self.tokenForHttpServer)
         else:
             return None
+
+    def showMainWindow(self, maximized: bool, stayOnTop: bool = True):
+        # state:
+        #   1 = minimized;
+        #   2 = full screen mode.        
+        state = 1 if not maximized else 2
+        command = {"method": "changeWindowState", "windowState": state, "stayOnTop": stayOnTop}
+        self.send_command_to_room(command)
 
 
 # =====================================================================
