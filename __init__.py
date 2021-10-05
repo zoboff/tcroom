@@ -507,6 +507,14 @@ class Room:
         command = {"method": "getConferenceParticipants"}
         self.send_command_to_room(command)
 
+    def login(self, callId: str, password: str):
+        """Login to TrueConf Server"""
+        command = {"method" : "login",
+            "login" : callId,
+            "password" : password,
+            "encryptPassword" : True}
+        self.send_command_to_room(command)
+
     def logout(self):
         """Log out the current user"""
         command = {"method": "logout"}
