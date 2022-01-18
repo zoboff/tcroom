@@ -360,8 +360,8 @@ class Room:
     def on_error(self, ws, error):
         logger.error(f'WebSocket connection error: {error}')
 
-    def on_close(self, ws):
-        self.dbg_print("Close socket connection")
+    def on_close(self, ws, *args):
+        self.dbg_print('Close socket connection.')
         self.setConnectionStatus(ConnectionStatus.close)
         self.tokenForHttpServer = ''
 
