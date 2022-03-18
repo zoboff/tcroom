@@ -45,7 +45,7 @@ Example:
 ```python
 import tcroom
 
-# Making a connection with TrueConf Room application
+# Making a connection to the TrueConf Room application
 room = tcroom.make_connection(pin = "123", room_ip = "192.168.31.62", debug_mode = True)
 # Calling "Echotest"
 room.call("echotest@trueconf.com") # "echotest" is almost constantly online
