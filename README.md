@@ -16,7 +16,7 @@ pip install requests
 
 ## How to use
 
-### 1. Start **TrueConf Room** application with **-pin** parameter.
+### 1. Launch the *TrueConf Room* application with *-pin* parameter.
 
 Windows:
 ```
