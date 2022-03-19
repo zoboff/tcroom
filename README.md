@@ -2,6 +2,10 @@
 
 TrueConf Room API python module.
 
+## How to install TrueConf Room
+
+* [Download TrueConf Room](install_trueconf_room.md)
+
 ## Python
 
 [Python 3.8.6](https://www.python.org/downloads/release/python-386/)
