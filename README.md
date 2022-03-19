@@ -8,11 +8,11 @@ TrueConf Room API python module.
 
 ## Python
 
-[Python 3.8.6](https://www.python.org/downloads/release/python-386/)
+Download page: [Python 3.8.6](https://www.python.org/downloads/release/python-386/)
 
-## Install:
+## Install packages
 
-install packages:
+Commands:
 ```
 pip install websocket-client==0.58
 pip install requests
