@@ -2,9 +2,9 @@
 
 TrueConf Room API python module.
 
-## How to install TrueConf Room
+## Install TrueConf Room
 
-* [Download TrueConf Room](install_trueconf_room.md)
+* Visit [Download TrueConf Room](install_trueconf_room.md)
 
 ## Python
 
@@ -35,7 +35,7 @@ $ trueconf-room -pin "123"
 TrueConf Room main window:
 ![screanroom3](https://user-images.githubusercontent.com/33928051/159042119-e29003e4-4f34-4f83-b7aa-344a3e752f37.png)
 
-### 2. Make a simple script
+### 2. Create and run a python script
 
 ```python
 import tcroom
