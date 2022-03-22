@@ -363,7 +363,7 @@ class Room:
     def on_close(self, ws, *args):
         self.dbg_print('Close socket connection.')
         self.setConnectionStatus(ConnectionStatus.close)
-        self.tokenForHttpServer = ''
+        self.tokenForHttpServer = ""
 
     def on_open(self, ws):
         self.dbg_print(f'{PRODUCT_NAME} connection to {self.url} was open successfully')
@@ -390,7 +390,7 @@ class Room:
         self.ip = ip
         self.pin = pin
         self.in_stopping = False
-        self.tokenForHttpServer = None
+        self.tokenForHttpServer = ""
 
         self.wsPort = getWebsocketPort(ip, port)
         self.httpPort = getHttpPort(ip, port)
