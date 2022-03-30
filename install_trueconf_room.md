@@ -16,6 +16,10 @@ https://trueconf.com/download/sdk/trueconf-room_4.0.0.1401-1~ubt20.04_amd64.deb
 
 https://trueconf.com/download/sdk/trueconf-room_4.0.0.1401-1~ubt21.10_amd64.deb
 
+### ubuntu-arm64 21.10 (optimized for Raspberry Pi 4)
+
+https://trueconf.com/download/sdk/trueconf-room_4.0.0.1404-1~ubt21.10_arm64.deb
+
 ### debian-10
 
 https://trueconf.com/download/sdk/trueconf-room_4.0.0.1401-1~deb10_amd64.deb
