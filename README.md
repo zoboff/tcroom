@@ -1,3 +1,5 @@
+**This module is deprecated, please use https://github.com/zoboff/pyVideoSDK**
+
 # tcroom
 
 TrueConf Room API python module.
